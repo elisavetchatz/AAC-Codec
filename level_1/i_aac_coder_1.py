@@ -1,6 +1,6 @@
 def i_aac_coder_1(aac_seq_1, filename_out):
     """
-    Inverse AAC coder aac_coder_1()  implementation.
+    Inverse AAC coder aac_coder_1() implementation.
 
     Args:
         aac_seq_1 (K length list)
