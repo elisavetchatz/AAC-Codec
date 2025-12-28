@@ -6,10 +6,10 @@ def mdct(x):
     
     Args:
         x (array): Input signal of length N
-        
     Returns:
         X (array): MDCT coefficients of length N/2
     """
+    
     N = len(x)
     n0 = (N / 2 + 1) / 2
     
@@ -20,4 +20,5 @@ def mdct(x):
             X[k] += x[n] * np.cos(2 * np.pi / N * (n + n0) * (k + 0.5))
     
     X *= 2
+
     return X
