@@ -7,7 +7,6 @@ from i_aac_coder_1 import i_aac_coder_1
 from utils_level_1.plotting_utils import (plot_audio_waveform, plot_audio_spectrogram,
                                           plot_encoding_process, plot_snr_analysis)
 
-# def demo_acc_1(filename_in, filename_out) this the og maybe find a way to keep it 
 def demo_acc_1(filename_in, filename_out):
 
     """
@@ -52,36 +51,30 @@ def demo_acc_1(filename_in, filename_out):
         SNR = float('inf')  # Perfect reconstruction
     
     # Generate plots if requested
-    plot=True
+    plot=False
     plot_dir='level_1/plots'
     if plot:
         os.makedirs(plot_dir, exist_ok=True)
         
         print(f"\nGenerating plots in '{plot_dir}/' directory...")
-        
         # Plot 1: Waveform comparison
         plot_audio_waveform(x_original, x_decoded, fs, 
                            save_path=f'{plot_dir}/waveform_comparison.png')
-        
         # Plot 2: Spectrogram analysis
         plot_audio_spectrogram(x_original, x_decoded, fs, 
                               save_path=f'{plot_dir}/spectrogram.png')
-        
         # Plot 3: Encoding process (first 10 frames)
         plot_encoding_process(aac_seq_1, num_frames=10, 
                              save_path=f'{plot_dir}/encoding_frames.png')
-        
         # Plot 4: SNR analysis
         plot_snr_analysis(x_original, x_decoded, fs, 
                          save_path=f'{plot_dir}/snr_analysis.png')
-        
         print(f"All plots saved! SNR: {SNR:.2f} dB")
-
 
     return SNR
 
 if __name__ == "__main__":
-    filename_in = "input.wav"
+    filename_in = "LicorDeClandraca1.wav"
     filename_out = "output.wav"
     SNR = demo_acc_1(filename_in, filename_out)
     print(f"SNR between original and decoded signal: {SNR:.2f} dB")
