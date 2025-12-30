@@ -1,5 +1,5 @@
 import numpy as np
-from level_2.utils_level_2.filter_utils import apply_inverse_tns_filter
+from utils_level_2.filter_utils import apply_inverse_tns_filter
 
 def i_tns(frame_F_in, frame_type, tns_coeffs):
     """
@@ -36,7 +36,7 @@ def i_tns(frame_F_in, frame_type, tns_coeffs):
             frame_F_out[:, subframe] = X
     
     else:
-        
+
         # Process single long frame
         Y = frame_F_in.flatten()
         a = tns_coeffs.flatten()

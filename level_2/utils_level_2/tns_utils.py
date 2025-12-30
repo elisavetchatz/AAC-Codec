@@ -11,9 +11,10 @@ def load_band_tables():
         B219a: Table for long frames (69 bands)
         B219b: Table for short frames (42 bands)
     """
+    # Go up 2 levels from utils_level_2/ to AAC-Codec/
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    parent_dir = os.path.dirname(current_dir)
-    mat_file = os.path.join(parent_dir, 'TableB219.mat')
+    root_dir = os.path.dirname(os.path.dirname(current_dir))
+    mat_file = os.path.join(root_dir, 'TableB219.mat')
     
     mat = sio.loadmat(mat_file)
     B219a = mat['B219a']  # For long frames (69 bands)
@@ -177,11 +178,8 @@ def quantize_tns_coeffs(a, step=0.1):
     Returns:
         a_quant: Quantized coefficients
     """
-    # Uniform quantization with step size
+
     a_quant = np.round(a / step) * step
-    
-    # Clip to valid range for 4-bit representation
-    # 4 bits signed: -8 to +7 steps -> -0.8 to +0.7
     a_quant = np.clip(a_quant, -0.8, 0.7)
     
     return a_quant
