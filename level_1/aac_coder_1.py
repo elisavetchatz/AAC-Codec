@@ -29,6 +29,7 @@ def aac_coder_1(filename_in):
     N = 2048
     hop = N // 2
 
+    # Split signal into overlapping frames (50% overlap)
     frames = []
     for start in range(0, x.shape[0] - N + 1, hop):
         frames.append(x[start:start + N, :])
@@ -37,31 +38,31 @@ def aac_coder_1(filename_in):
     prev_frame_type = "OLS"
 
     for i in range(len(frames)):
-
+        # Current frame in time domain
         frame_T = frames[i]
+        # Next frame (used for SSC decision); zero-padded if last frame
         next_frame_T = frames[i + 1] if i + 1 < len(frames) else np.zeros_like(frame_T)
-
+        # Determine frame type using Sequence Segmentation Control
         frame_type = SSC(frame_T, next_frame_T, prev_frame_type)
+        # Window type (fixed to sinusoidal in this implementation)
         win_type = "SIN"
-
+        # Apply filter bank (MDCT)
         frame_F = filter_bank(frame_T, frame_type, win_type)
-
+        # Separate left and right channel MDCT coefficients
         if frame_type == "ESH":
-            # Reshape to (128, 8) - each column is one subframe
-            chl_F = frame_F[:, 0].reshape(128, 8, order='C')
-            chr_F = frame_F[:, 1].reshape(128, 8, order='C')
+            chl_F = frame_F[:, 0::2]
+            chr_F = frame_F[:, 1::2]
         else:
-            # Reshape to (1024, 1) - column vector
-            chl_F = frame_F[:, 0].reshape(1024, 1)
-            chr_F = frame_F[:, 1].reshape(1024, 1)
-
+            chl_F = frame_F[:, 0]
+            chr_F = frame_F[:, 1]
+        # Store encoded frame information
         aac_seq_1.append({
             "frame_type": frame_type,
             "win_type": win_type,
             "chl": {"frame_F": chl_F},
             "chr": {"frame_F": chr_F}
         })
-
+        # Update previous frame type
         prev_frame_type = frame_type
 
     return aac_seq_1

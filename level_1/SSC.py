@@ -1,3 +1,6 @@
+from scipy.signal import lfilter
+import numpy as np
+
 def SSC(frame_T, next_frame_T, prev_frame_type):
     """
     Sequence Segmentation Control implementation.
@@ -10,8 +13,6 @@ def SSC(frame_T, next_frame_T, prev_frame_type):
     Returns:
         frame_type (str): frame type of current frame. Can be 'OLS', 'LSS', 'ESH', 'LPS'.
     """
-    from scipy.signal import lfilter
-    import numpy as np
     
     b = [0.7548, -0.7548]
     a = [1.0, -0.5095]
@@ -20,17 +21,17 @@ def SSC(frame_T, next_frame_T, prev_frame_type):
     is_esh_next = [False, False]
 
     for ch in range(2):
-        # Υψιπερατό φίλτρο
+        # High-pass filter
         y = lfilter(b, a, next_frame_T[:, ch])
 
-        # Υπολογισμός s_l^2
+        # Compute s_l^2 (energy per block)
         for l in range(8):
             block = y[l*128:(l+1)*128]
             s2[ch, l] = np.sum(block ** 2)
-        # Υπολογισμός ds_l^2
+        # Compute ds_l^2 (attack values)
         for l in range(1, 8):
             prev_mean = np.mean(s2[ch, :l])
-            # Έλεγχος ESH
+            # ESH detection check
             if prev_mean > 0:
                 ds2[ch, l] = s2[ch, l] / prev_mean
             if s2[ch, l] > 1e-3 and ds2[ch, l] > 10:
@@ -39,7 +40,7 @@ def SSC(frame_T, next_frame_T, prev_frame_type):
     
     next_is_esh = is_esh_next[0] or is_esh_next[1]
 
-    # Τελική απόφαση frame_type 
+    # Final frame type decision
     if prev_frame_type == "OLS":
         frame_type = "LSS" if next_is_esh else "OLS"
 
