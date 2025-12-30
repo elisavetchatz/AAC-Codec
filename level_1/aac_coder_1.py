@@ -23,8 +23,8 @@ def aac_coder_1(filename_in):
                                           * (1024, 1) for other frame types
     """
     x, fs = sf.read(filename_in)
-    assert fs == 48000
-    assert x.ndim == 2 and x.shape[1] == 2
+    if fs != 48000 or x.ndim != 2 or x.shape[1] != 2:
+        raise ValueError("Input must be 48kHz stereo audio")
 
     N = 2048
     hop = N // 2
@@ -40,14 +40,19 @@ def aac_coder_1(filename_in):
     for i in range(len(frames)):
         # Current frame in time domain
         frame_T = frames[i]
+
         # Next frame (used for SSC decision); zero-padded if last frame
         next_frame_T = frames[i + 1] if i + 1 < len(frames) else np.zeros_like(frame_T)
+
         # Determine frame type using Sequence Segmentation Control
         frame_type = SSC(frame_T, next_frame_T, prev_frame_type)
+
         # Window type (fixed to sinusoidal in this implementation)
         win_type = "SIN"
+
         # Apply filter bank (MDCT)
         frame_F = filter_bank(frame_T, frame_type, win_type)
+
         # Separate left and right channel MDCT coefficients
         if frame_type == "ESH":
             chl_F = frame_F[:, 0::2]
@@ -55,6 +60,7 @@ def aac_coder_1(filename_in):
         else:
             chl_F = frame_F[:, 0]
             chr_F = frame_F[:, 1]
+
         # Store encoded frame information
         aac_seq_1.append({
             "frame_type": frame_type,

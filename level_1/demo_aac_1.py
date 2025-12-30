@@ -25,10 +25,9 @@ def demo_acc_1(filename_in, filename_out):
     
     # Encode
     aac_seq_1 = aac_coder_1(filename_in)
+
     # Decode
     x_decoded = i_aac_coder_1(aac_seq_1, filename_out)
-    print("originl len:", len(x_original))
-    print("decoded len:", len(x_decoded))
     
     # Ensure both signals have the same length
     if len(x_original) != len(x_decoded):
@@ -51,7 +50,7 @@ def demo_acc_1(filename_in, filename_out):
         SNR = float('inf')  # Perfect reconstruction
     
     # Generate plots if requested
-    plot = True
+    plot = False
     plot_dir = 'level_1/plots'
     if plot:
         os.makedirs(plot_dir, exist_ok=True)

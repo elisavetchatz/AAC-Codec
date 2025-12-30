@@ -21,6 +21,7 @@ def SSC(frame_T, next_frame_T, prev_frame_type):
     is_esh_next = [False, False]
 
     for ch in range(2):
+
         # High-pass filter
         y = lfilter(b, a, next_frame_T[:, ch])
 
@@ -28,9 +29,12 @@ def SSC(frame_T, next_frame_T, prev_frame_type):
         for l in range(8):
             block = y[l*128:(l+1)*128]
             s2[ch, l] = np.sum(block ** 2)
+
         # Compute ds_l^2 (attack values)
         for l in range(1, 8):
+
             prev_mean = np.mean(s2[ch, :l])
+
             # ESH detection check
             if prev_mean > 0:
                 ds2[ch, l] = s2[ch, l] / prev_mean
@@ -55,6 +59,5 @@ def SSC(frame_T, next_frame_T, prev_frame_type):
 
     else:
         raise ValueError("Invalid previous frame type")
-
 
     return frame_type
