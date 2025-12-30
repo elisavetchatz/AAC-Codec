@@ -1,5 +1,5 @@
-import numpy as np
 import os
+import numpy as np
 from scipy.io import wavfile
 
 from aac_coder_1 import aac_coder_1
@@ -29,7 +29,6 @@ def demo_acc_1(filename_in, filename_out):
     # Decode
     x_decoded = i_aac_coder_1(aac_seq_1, filename_out)
     
-    # Calculate SNR
     # Ensure both signals have the same length
     if len(x_original) != len(x_decoded):
         min_len = min(len(x_original), len(x_decoded))
@@ -74,7 +73,7 @@ def demo_acc_1(filename_in, filename_out):
     return SNR
 
 if __name__ == "__main__":
-    filename_in = "LicorDeClandraca1.wav"
+    filename_in = "LicorDeCalandraca.wav"
     filename_out = "output.wav"
     SNR = demo_acc_1(filename_in, filename_out)
     print(f"SNR between original and decoded signal: {SNR:.2f} dB")
