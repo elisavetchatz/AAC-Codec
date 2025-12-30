@@ -11,12 +11,16 @@ def aac_coder_1(filename_in):
         filename_in (str): input .wav file name to be encoded
                             Assumption: file includes 2 channel voice with fs = 48kHz
     Returns:
-        aac_seq_1 (K length list): K is the number of frams that have been encoded
+        aac_seq_1 (K length list): K is the number of frames that have been encoded
                                     Each element of this list is a dictionary that includes:
                                     - aac_seq_1[i]['frame_type'] (str): frame type of the i-th frame. Can be 'OLS', 'LSS', 'ESH', 'LPS'.
-                                    - aac_seq_1[i]['win_type'] 
-                                    - aac_seq_1[i]['chl']["frame_F"]: MDCT coefficients of left channel (128x8) fr EIGHT SHORT SEQUENCE or (1024x1) for other frame types
-                                    - aac_seq_1[i]['chr']["frame_F"]: MDCT coefficients of right channel (128x8) fr EIGHT SHORT SEQUENCE or (1024x1) for other frame types    
+                                    - aac_seq_1[i]['win_type'] (str): window type ('KBD' or 'SIN')
+                                    - aac_seq_1[i]['chl']["frame_F"]: MDCT coefficients of left channel 
+                                          * (128, 8) for EIGHT SHORT SEQUENCE - each column is one subframe
+                                          * (1024, 1) for other frame types
+                                    - aac_seq_1[i]['chr']["frame_F"]: MDCT coefficients of right channel 
+                                          * (128, 8) for EIGHT SHORT SEQUENCE - each column is one subframe
+                                          * (1024, 1) for other frame types
     """
     x, fs = sf.read(filename_in)
     assert fs == 48000
@@ -43,11 +47,13 @@ def aac_coder_1(filename_in):
         frame_F = filter_bank(frame_T, frame_type, win_type)
 
         if frame_type == "ESH":
-            chl_F = frame_F[:, 0::2]
-            chr_F = frame_F[:, 1::2]
+            # Reshape to (128, 8) - each column is one subframe
+            chl_F = frame_F[:, 0].reshape(128, 8, order='C')
+            chr_F = frame_F[:, 1].reshape(128, 8, order='C')
         else:
-            chl_F = frame_F[:, 0]
-            chr_F = frame_F[:, 1]
+            # Reshape to (1024, 1) - column vector
+            chl_F = frame_F[:, 0].reshape(1024, 1)
+            chr_F = frame_F[:, 1].reshape(1024, 1)
 
         aac_seq_1.append({
             "frame_type": frame_type,

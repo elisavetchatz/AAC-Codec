@@ -7,9 +7,22 @@ from utils_level_1.imdct import imdct
 
 def i_filter_bank(frame_F, frame_type, win_type):
     """
-    Inverse Filter Bank implementation.
+    Inverse Filter Bank implementation for a single channel.
     
+    Args:
+        frame_F: MDCT coefficients for one channel:
+                 - (1024, 1) for OLS/LSS/LPS frames
+                 - (128, 8) for ESH frames (each column = one subframe)
+                 Will be flattened to 1-D internally.
+        frame_type: Frame type ('OLS', 'LSS', 'LPS', 'ESH')
+        win_type: Window type ('KBD' or 'SIN')
+    
+    Returns:
+        frame_T: 1-D array of 2048 time-domain samples for one channel
     """
+    # Flatten to 1-D: (1024,1) → (1024,) or (128,8) → (1024,)
+    frame_F = np.asarray(frame_F).flatten(order='C')
+    
     # Create windows based on win_type
     if win_type == 'KBD':
         W_long = create_kbd_window(2048, alpha=6)
@@ -20,16 +33,15 @@ def i_filter_bank(frame_F, frame_type, win_type):
     else:
         raise ValueError(f"Unknown window type: {win_type}")
     
-    frame_T = np.zeros((2048, 2))
+    frame_T = np.zeros(2048)
     
     # Process based on frame_type
     if frame_type == 'ONLY_LONG_SEQUENCE' or frame_type == 'OLS':
         # Use symmetric long window for entire frame
-        for ch in range(2):
-            # Apply IMDCT (1024 -> 2048 samples)
-            reconstructed = imdct(frame_F[:, ch])
-            # Apply window in time domain
-            frame_T[:, ch] = reconstructed * W_long
+        # Apply IMDCT (1024 -> 2048 samples)
+        reconstructed = imdct(frame_F)
+        # Apply window in time domain
+        frame_T = reconstructed * W_long
     
     elif frame_type == 'LONG_START_SEQUENCE' or frame_type == 'LSS':
         # Asymmetric window: [left_Wl/2 (1024), 448 ones, right_Ws/2 (128), 448 zeros]
@@ -39,9 +51,8 @@ def i_filter_bank(frame_F, frame_type, win_type):
             W_short[128:],           
             np.zeros(448)            
         ])
-        for ch in range(2):
-            reconstructed = imdct(frame_F[:, ch])
-            frame_T[:, ch] = reconstructed * window
+        reconstructed = imdct(frame_F)
+        frame_T = reconstructed * window
     
     elif frame_type == 'LONG_STOP_SEQUENCE' or frame_type == 'LPS':
         # Asymmetric window: [448 zeros, left_Ws/2 (128), 448 ones, right_Wl/2 (1024)]
@@ -51,34 +62,32 @@ def i_filter_bank(frame_F, frame_type, win_type):
             np.ones(448), 
             W_long[1024:]
         ])
-        for ch in range(2):
-            reconstructed = imdct(frame_F[:, ch])
-            frame_T[:, ch] = reconstructed * window
+        reconstructed = imdct(frame_F)
+        frame_T = reconstructed * window
     
     elif frame_type == 'EIGHT_SHORT_SEQUENCE' or frame_type == 'ESH':
-        # Reconstruct 8 overlapping subframes
-        for ch in range(2):
-            # Initialize central samples buffer (1152 samples)
-            central_samples = np.zeros(1152)
+        # Reconstruct 8 overlapping subframes for single channel
+        # Initialize central samples buffer (1152 samples)
+        central_samples = np.zeros(1152)
+        
+        # Process 8 subframes
+        for i in range(8):
+            # Extract MDCT coefficients for this subframe (128 coefficients)
+            mdct_coeffs = frame_F[i*128:(i+1)*128]
             
-            # Process 8 subframes
-            for i in range(8):
-                # Extract MDCT coefficients for this subframe (128 coefficients)
-                mdct_coeffs = frame_F[i*128:(i+1)*128, ch]
-                
-                # Apply IMDCT (128 -> 256 samples)
-                subframe_reconstructed = imdct(mdct_coeffs)
-                
-                # Apply short window
-                windowed = subframe_reconstructed * W_short
-                
-                # Overlap-add into central samples
-                start = i * 128  # 50% overlap
-                central_samples[start:start+256] += windowed
+            # Apply IMDCT (128 -> 256 samples)
+            subframe_reconstructed = imdct(mdct_coeffs)
             
-            # Place central samples in frame_T with 448 samples padding on each side
-            frame_T[448:448+1152, ch] = central_samples
-            # The padding regions (first 448 and last 448) remain zero
+            # Apply short window
+            windowed = subframe_reconstructed * W_short
+            
+            # Overlap-add into central samples
+            start = i * 128  # 50% overlap
+            central_samples[start:start+256] += windowed
+        
+        # Place central samples in frame_T with 448 samples padding on each side
+        frame_T[448:448+1152] = central_samples
+        # The padding regions (first 448 and last 448) remain zero
     
     else:
         raise ValueError(f"Unknown frame type: {frame_type}")

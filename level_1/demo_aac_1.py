@@ -34,7 +34,7 @@ def demo_acc_1(filename_in, filename_out):
         min_len = min(len(x_original), len(x_decoded))
         x_original = x_original[:min_len]
         x_decoded = x_decoded[:min_len]
-        raise ValueError("Original and decoded signals had different lengths")
+        print(f"Note: Trimmed signals to {min_len} samples for comparison")
     
     # Calculate signal power
     signal_power = np.sum(x_original ** 2)
@@ -50,7 +50,7 @@ def demo_acc_1(filename_in, filename_out):
         SNR = float('inf')  # Perfect reconstruction
     
     # Generate plots if requested
-    plot = False
+    plot = True
     plot_dir = 'level_1/plots'
     if plot:
         os.makedirs(plot_dir, exist_ok=True)
