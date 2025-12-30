@@ -51,7 +51,7 @@ def demo_acc_1(filename_in, filename_out):
     
     # Generate plots if requested
     plot = False
-    plot_dir = 'level_1/plots'
+    plot_dir = 'level_1/outputs/plots/sin_window'
     if plot:
         os.makedirs(plot_dir, exist_ok=True)
         print(f"\nGenerating plots in '{plot_dir}/' directory...")
@@ -73,8 +73,10 @@ def demo_acc_1(filename_in, filename_out):
     return SNR
 
 if __name__ == "__main__":
+    # Create outputs directory and subdirectories
+    os.makedirs("outputs/signals", exist_ok=True)
     
     filename_in = "LicorDeCalandraca.wav"
-    filename_out = "output.wav"
+    filename_out = "outputs/signals/output_level_1_SIN.wav"
     SNR = demo_acc_1(filename_in, filename_out)
     print(f"SNR between original and decoded signal: {SNR:.2f} dB")

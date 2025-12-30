@@ -25,8 +25,11 @@ def test_level_1():
     
     # Test configuration
     filename_in = "../LicorDeCalandraca.wav"
-    filename_out = "../output.wav"
+    filename_out = "outputs/output_level_1.wav"
     min_snr_threshold = 30.0  # Minimum acceptable SNR in dB
+    
+    # Create outputs directory if it doesn't exist
+    os.makedirs("outputs", exist_ok=True)
     
     try:
         # Check input file exists
