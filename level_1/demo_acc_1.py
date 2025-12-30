@@ -50,17 +50,9 @@ def demo_acc_1(filename_in, filename_out):
         SNR = 10 * np.log10(signal_power / noise_power)
     else:
         SNR = float('inf')  # Perfect reconstruction
-
-    return SNR
-
-if __name__ == "__main__":
-    filename_in = "input.wav"
-    filename_out = "output.wav"
-    SNR = demo_acc_1(filename_in, filename_out)
-    print(f"SNR between original and decoded signal: {SNR:.2f} dB")
-
+    
     # Generate plots if requested
-    plot=False
+    plot=True
     plot_dir='level_1/plots'
     if plot:
         os.makedirs(plot_dir, exist_ok=True)
@@ -84,3 +76,12 @@ if __name__ == "__main__":
                          save_path=f'{plot_dir}/snr_analysis.png')
         
         print(f"All plots saved! SNR: {SNR:.2f} dB")
+
+
+    return SNR
+
+if __name__ == "__main__":
+    filename_in = "input.wav"
+    filename_out = "output.wav"
+    SNR = demo_acc_1(filename_in, filename_out)
+    print(f"SNR between original and decoded signal: {SNR:.2f} dB")
