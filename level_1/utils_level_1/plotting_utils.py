@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.signal as signal
 
-# ========== PLOTS FOR ACTUAL AUDIO SIGNAL ANALYSIS ==========
 
 def plot_audio_waveform(x_original, x_decoded, fs, save_path=None):
     """
@@ -113,18 +113,31 @@ def plot_audio_spectrogram(x_original, x_decoded, fs, save_path=None):
     nperseg = 2048
     noverlap = 1024
     
-    # Original spectrogram
-    f, t, Sxx_orig = plt.mpl.mlab.specgram(x_orig_plot, NFFT=nperseg, 
-                                            Fs=fs, noverlap=noverlap)
+    f, t, Sxx_orig = signal.spectrogram(
+        x_orig_plot,
+        fs=fs,
+        window='hann',
+        nperseg=nperseg,
+        noverlap=noverlap,
+        scaling='density',
+        mode='psd'
+    )
     im1 = axes[0].pcolormesh(t, f, 10 * np.log10(Sxx_orig + 1e-10), 
                              shading='gouraud', cmap='viridis')
     axes[0].set_title('Original Signal Spectrogram')
     axes[0].set_ylabel('Frequency (Hz)')
     plt.colorbar(im1, ax=axes[0], label='Power (dB)')
     
-    # Decoded spectrogram
-    f, t, Sxx_dec = plt.mpl.mlab.specgram(x_dec_plot, NFFT=nperseg, 
-                                           Fs=fs, noverlap=noverlap)
+    # Decoded spectrogram (SciPy)
+    f, t, Sxx_dec = signal.spectrogram(
+        x_dec_plot,
+        fs=fs,
+        window='hann',
+        nperseg=nperseg,
+        noverlap=noverlap,
+        scaling='density',
+        mode='psd'
+    )
     im2 = axes[1].pcolormesh(t, f, 10 * np.log10(Sxx_dec + 1e-10), 
                              shading='gouraud', cmap='viridis')
     axes[1].set_title('Decoded Signal Spectrogram')

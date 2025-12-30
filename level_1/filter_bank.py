@@ -1,8 +1,8 @@
 import numpy as np
 
-from utils.create_kbd_window import create_kbd_window
-from utils.create_sin_window import create_sin_window
-from utils.mdct import mdct
+from utils_level_1.create_kbd_window import create_kbd_window  
+from utils_level_1.create_sin_window import create_sin_window  
+from utils_level_1.mdct import mdct  
 
 def filter_bank(frame_T, frame_type, win_type):
     """

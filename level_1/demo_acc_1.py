@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from scipy.io import wavfile
+import soundfile as sf
 
 from aac_coder_1 import aac_coder_1
 from i_aac_coder_1 import i_aac_coder_1
@@ -15,7 +15,7 @@ def demo_acc_1(filename_in, filename_out):
     """
 
     # Read original audio file
-    fs, x_original = wavfile.read(filename_in)
+    x_original, fs = sf.read(filename_in)
     
     # Ensure it's float format for processing
     if x_original.dtype == np.int16:
@@ -34,7 +34,7 @@ def demo_acc_1(filename_in, filename_out):
         min_len = min(len(x_original), len(x_decoded))
         x_original = x_original[:min_len]
         x_decoded = x_decoded[:min_len]
-        raise Warning("Original and decoded signals had different lengths; truncated to match.")
+        raise ValueError("Original and decoded signals had different lengths")
     
     # Calculate signal power
     signal_power = np.sum(x_original ** 2)
@@ -50,22 +50,22 @@ def demo_acc_1(filename_in, filename_out):
         SNR = float('inf')  # Perfect reconstruction
     
     # Generate plots if requested
-    plot=False
-    plot_dir='level_1/plots'
+    plot = False
+    plot_dir = 'level_1/plots'
     if plot:
         os.makedirs(plot_dir, exist_ok=True)
-        
         print(f"\nGenerating plots in '{plot_dir}/' directory...")
-        # Plot 1: Waveform comparison
+        
+        # Waveform comparison
         plot_audio_waveform(x_original, x_decoded, fs, 
                            save_path=f'{plot_dir}/waveform_comparison.png')
-        # Plot 2: Spectrogram analysis
+        # Spectrogram analysis
         plot_audio_spectrogram(x_original, x_decoded, fs, 
                               save_path=f'{plot_dir}/spectrogram.png')
-        # Plot 3: Encoding process (first 10 frames)
+        # Encoding (first 10 frames)
         plot_encoding_process(aac_seq_1, num_frames=10, 
                              save_path=f'{plot_dir}/encoding_frames.png')
-        # Plot 4: SNR analysis
+        # SNR
         plot_snr_analysis(x_original, x_decoded, fs, 
                          save_path=f'{plot_dir}/snr_analysis.png')
         print(f"All plots saved! SNR: {SNR:.2f} dB")

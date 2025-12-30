@@ -1,5 +1,4 @@
 import numpy as np
-from scipy.signal.windows import kaiser
 
 def create_sin_window(N):
     """
@@ -19,6 +18,6 @@ def create_sin_window(N):
     
     # Right half: WSIN_RIGHT
     for n in range(N // 2, N):
-        w[n] = np.sin(np.pi / N * (n + 0.5))
+        w[n] = np.sin(np.pi / N * (np.arange(N) + 0.5))
     
     return w
