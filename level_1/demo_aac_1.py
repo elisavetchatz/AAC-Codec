@@ -74,9 +74,9 @@ def demo_acc_1(filename_in, filename_out):
 
 if __name__ == "__main__":
     # Create outputs directory and subdirectories
-    os.makedirs("outputs/signals", exist_ok=True)
+    os.makedirs("level_1/outputs/signals", exist_ok=True)
     
     filename_in = "LicorDeCalandraca.wav"
-    filename_out = "outputs/signals/output_level_1_SIN.wav"
+    filename_out = "level_1/outputs/signals/output_level_1_SIN.wav"
     SNR = demo_acc_1(filename_in, filename_out)
     print(f"SNR between original and decoded signal: {SNR:.2f} dB")
