@@ -25,7 +25,7 @@ def demo_acc_1(filename_in, filename_out):
     
     # Encode
     aac_seq_1 = aac_coder_1(filename_in)
-    
+
     # Decode
     x_decoded = i_aac_coder_1(aac_seq_1, filename_out)
     
@@ -34,7 +34,7 @@ def demo_acc_1(filename_in, filename_out):
         min_len = min(len(x_original), len(x_decoded))
         x_original = x_original[:min_len]
         x_decoded = x_decoded[:min_len]
-        raise ValueError("Original and decoded signals had different lengths")
+        print(f"Note: Trimmed signals to {min_len} samples for comparison")
     
     # Calculate signal power
     signal_power = np.sum(x_original ** 2)

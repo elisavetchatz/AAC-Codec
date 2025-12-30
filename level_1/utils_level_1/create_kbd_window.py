@@ -34,6 +34,6 @@ def create_kbd_window(N, alpha):
     
     # Right half: WKBD_RIGHT
     for n in range(N // 2, N):
-        w[n] = cumsum[N - n - 1] / norm_factor
+        w[n] = cumsum[N - n] / norm_factor
     
     return w

@@ -185,10 +185,11 @@ def plot_encoding_process(aac_sequence, num_frames=5, save_path=None):
     for i in range(n_frames):
         frame_data = aac_sequence[i]
         frame_type = frame_data['frame_type']
-        frame_F = frame_data['frame_F']
         
-        # Plot left channel
-        coeffs = frame_F[:, 0]
+        # Get left channel coefficients
+        coeffs = frame_data['chl']['frame_F']
+        if coeffs.ndim > 1:
+            coeffs = coeffs.flatten()
         
         axes[i].plot(coeffs, 'b-', linewidth=0.6)
         axes[i].set_title(f'Frame {i+1}: {frame_type}')

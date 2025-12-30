@@ -31,6 +31,7 @@ def filter_bank(frame_T, frame_type, win_type):
     
     # Process based on frame_type
     if frame_type == 'ONLY_LONG_SEQUENCE' or frame_type == 'OLS':
+
         # Use symmetric long window for entire frame
         frame_F = np.zeros((1024, 2))
         for ch in range(2):
@@ -38,6 +39,7 @@ def filter_bank(frame_T, frame_type, win_type):
             frame_F[:, ch] = mdct(windowed)
     
     elif frame_type == 'LONG_START_SEQUENCE' or frame_type == 'LSS':
+
         # Asymmetric window: [left_Wl/2 (1024), 448 ones, right_Ws/2 (128), 448 zeros]
         window = np.concatenate([
             W_long[:1024],
@@ -45,12 +47,14 @@ def filter_bank(frame_T, frame_type, win_type):
             W_short[128:], 
             np.zeros(448) 
         ])
+
         frame_F = np.zeros((1024, 2))
         for ch in range(2):
             windowed = frame_T[:, ch] * window
             frame_F[:, ch] = mdct(windowed)
     
     elif frame_type == 'LONG_STOP_SEQUENCE' or frame_type == 'LPS':
+
         # Asymmetric window: [448 zeros, left_Ws/2 (128), 448 ones, right_Wl/2 (1024)]
         window = np.concatenate([
             np.zeros(448), 
@@ -58,12 +62,14 @@ def filter_bank(frame_T, frame_type, win_type):
             np.ones(448), 
             W_long[1024:] 
         ])
+
         frame_F = np.zeros((1024, 2))
         for ch in range(2):
             windowed = frame_T[:, ch] * window
             frame_F[:, ch] = mdct(windowed)
     
     elif frame_type == 'EIGHT_SHORT_SEQUENCE' or frame_type == 'ESH':
+        
         # Use central 1152 samples, ignore 2x448 samples on sides
         # Divide into 8 overlapping 50% subframes of 256 samples each
         frame_F = np.zeros((1024, 2))  # 8 subframes * 128 coefficients each
