@@ -21,7 +21,6 @@ def load_band_tables():
     
     return B219a, B219b
 
-
 def get_band_boundaries(frame_type):
     """
     Get band boundaries based on frame type.
@@ -46,7 +45,6 @@ def get_band_boundaries(frame_type):
         num_bands = len(band_starts)
     
     return band_starts, num_bands
-
 
 def compute_band_energy(X, frame_type):
     """
@@ -79,7 +77,6 @@ def compute_band_energy(X, frame_type):
         P[j] = np.sum(X[bj:bj_next] ** 2)
     
     return P
-
 
 def compute_normalization_factors(X, frame_type):
     """
@@ -127,3 +124,64 @@ def compute_normalization_factors(X, frame_type):
         S_w[k] = (S_w[k] + S_w[k - 1]) / 2.0
     
     return S_w
+
+def solve_lpc_coeffs(X_w, order=4):
+    """
+    Solve for Linear Prediction Coefficients using autocorrelation method.
+    
+    Solves the normal equations: R * a = r
+    where R is the autocorrelation matrix and r is the autocorrelation vector.
+    
+    Args:
+        X_w: Normalized MDCT coefficients
+        order: LPC filter order (default 4)
+    
+    Returns:
+        a: LPC coefficients [a1, a2, ..., a_p]
+    """
+    X_w = np.asarray(X_w).flatten()
+    p = order
+    
+    # Compute autocorrelation values r(0), r(1), ..., r(p)
+    r = np.zeros(p + 1)
+    for lag in range(p + 1):
+        r[lag] = np.sum(X_w[lag:] * X_w[:len(X_w) - lag])
+    
+    # Build autocorrelation matrix R (Toeplitz structure)
+    R = np.zeros((p, p))
+    for i in range(p):
+        for j in range(p):
+            R[i, j] = r[abs(i - j)]
+    
+    # Right-hand side vector
+    r_vec = r[1:p + 1]
+    
+    # Solve normal equations
+    # Add small regularization for numerical stability
+    try:
+        a = np.linalg.solve(R + 1e-10 * np.eye(p), r_vec)
+    except np.linalg.LinAlgError:
+        # If singular, return zero coefficients
+        a = np.zeros(p)
+    
+    return a
+
+def quantize_tns_coeffs(a, step=0.1):
+    """
+    Quantize LPC coefficients using uniform symmetric quantizer.
+    
+    Args:
+        a: LPC coefficients
+        step: Quantization step size (default 0.1 for 4-bit quantization)
+    
+    Returns:
+        a_quant: Quantized coefficients
+    """
+    # Uniform quantization with step size
+    a_quant = np.round(a / step) * step
+    
+    # Clip to valid range for 4-bit representation
+    # 4 bits signed: -8 to +7 steps -> -0.8 to +0.7
+    a_quant = np.clip(a_quant, -0.8, 0.7)
+    
+    return a_quant
