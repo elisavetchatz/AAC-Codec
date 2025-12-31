@@ -24,7 +24,7 @@ def test_level_1():
     print("=" * 70)
     
     # Test configuration
-    filename_in = "LicorDeCalandraca.wav"
+    filename_in = "../LicorDeCalandraca.wav"
     filename_out = "level_1/outputs/signals/output_level_1_SIN.wav"
     min_snr_threshold = 30.0  # Minimum acceptable SNR in dB
     
