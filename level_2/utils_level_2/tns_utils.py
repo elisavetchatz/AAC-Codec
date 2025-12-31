@@ -163,6 +163,7 @@ def solve_lpc_coeffs(Xw, order=4):
     # Solve normal equations
     try:
         a = np.linalg.solve(R + 1e-10 * np.eye(p), r_vec)
+        
     except np.linalg.LinAlgError:
         # If singular, return zero coefficients
         a = np.zeros(p)
