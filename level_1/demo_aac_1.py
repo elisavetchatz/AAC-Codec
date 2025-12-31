@@ -49,25 +49,25 @@ def demo_acc_1(filename_in, filename_out):
     else:
         SNR = float('inf')  # Perfect reconstruction
     
-    # Generate plots if requested
-    plot = False
+    # Generate plots
+    plot = True
     plot_dir = 'level_1/outputs/plots/sin_window'
     if plot:
         os.makedirs(plot_dir, exist_ok=True)
         print(f"\nGenerating plots in '{plot_dir}/' directory...")
-        
-        # Waveform comparison
-        plot_audio_waveform(x_original, x_decoded, fs, 
-                           save_path=f'{plot_dir}/waveform_comparison.png')
-        # Spectrogram analysis
-        plot_audio_spectrogram(x_original, x_decoded, fs, 
-                              save_path=f'{plot_dir}/spectrogram.png')
-        # Encoding (first 10 frames)
-        plot_encoding_process(aac_seq_1, num_frames=10, 
-                             save_path=f'{plot_dir}/encoding_frames.png')
-        # SNR
-        plot_snr_analysis(x_original, x_decoded, fs, 
-                         save_path=f'{plot_dir}/snr_analysis.png')
+
+        # Waveform comparison (zoom error with default ±0.01)
+        plot_audio_waveform(x_original, x_decoded, fs, save_path=f'{plot_dir}/waveform_comparison.png')
+
+        # Spectrogram analysis (original vs decoded)
+        plot_audio_spectrogram(x_original, x_decoded, fs, save_path=f'{plot_dir}/spectrogram.png')
+
+        # Encoding examples: plot 3 representative frames (0, 10, 20)
+        plot_encoding_process(aac_seq_1, num_frames=3, representative_frames=[0, 10, 20], save_path=f'{plot_dir}/encoding_examples.png')
+
+        # SNR (segmental) — uses default energy threshold and clipping
+        plot_snr_analysis(x_original, x_decoded, fs, save_path=f'{plot_dir}/snr_analysis.png')
+
         print(f"All plots saved! SNR: {SNR:.2f} dB")
 
     return SNR
