@@ -15,13 +15,10 @@ def check_filter_stability(a):
     Returns:
         is_stable: True if filter is stable
     """
-    # The inverse filter has denominator: 1 - a1*z^-1 - a2*z^-2 - ... - ap*z^-p
-    # Convert to polynomial form: z^p - a1*z^(p-1) - a2*z^(p-2) - ... - ap
-    
+
     p = len(a)
     
     # Polynomial coefficients in descending order of powers
-    # For numpy.polynomial.polynomial, we need ascending order
     poly_coeffs = np.zeros(p + 1)
     if p > 0:
         poly_coeffs[0] = -a[-1]  # Constant term
@@ -33,7 +30,7 @@ def check_filter_stability(a):
 
     poly_coeffs[p] = 1.0  # Highest degree term
     
-    # Find roots (poles)
+    # Find roots
     poly = Polynomial(poly_coeffs)
     roots = poly.roots()
     
@@ -53,6 +50,7 @@ def apply_tns_filter(X, a):
     Returns:
         Y: Filtered MDCT coefficients
     """
+    
     X = np.asarray(X).flatten()
     N = len(X)
     p = len(a)

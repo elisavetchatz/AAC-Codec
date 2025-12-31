@@ -11,7 +11,7 @@ def load_band_tables():
         B219a: Table for long frames (69 bands)
         B219b: Table for short frames (42 bands)
     """
-    # Go up 2 levels from utils_level_2/ to AAC-Codec/
+
     current_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.dirname(os.path.dirname(current_dir))
     mat_file = os.path.join(root_dir, 'TableB219.mat')
@@ -58,6 +58,7 @@ def compute_band_energy(X, frame_type):
     Returns:
         P: Array of band energies, shape (NB,)
     """
+
     X = np.asarray(X).flatten()
     band_starts, num_bands = get_band_boundaries(frame_type)
     
@@ -95,6 +96,7 @@ def compute_normalization_factors(X, frame_type):
     Returns:
         S_w: Normalization factors, same shape as X
     """
+    
     X = np.asarray(X).flatten()
     N = len(X)
     
@@ -103,30 +105,30 @@ def compute_normalization_factors(X, frame_type):
     band_starts, num_bands = get_band_boundaries(frame_type)
     
     # Initialize S_w with sqrt of band energies
-    S_w = np.zeros(N)
+    Sw = np.zeros(N)
     
     for j in range(num_bands):
-        b_j = band_starts[j]
+        bj = band_starts[j]
         
         if j < num_bands - 1:
-            b_j_next = band_starts[j + 1]
+            bj_next = band_starts[j + 1]
         else:
-            b_j_next = N
+            bj_next = N
         
         # S_w(k) = sqrt(P(j)) for all k in band j
-        S_w[b_j:b_j_next] = np.sqrt(P[j])
+        Sw[bj:bj_next] = np.sqrt(P[j])
     
     # Smoothing: backward pass (1022 down to 0)
     for k in range(N - 2, -1, -1):
-        S_w[k] = (S_w[k] + S_w[k + 1]) / 2.0
+        Sw[k] = (Sw[k] + Sw[k + 1]) / 2.0
     
     # Smoothing: forward pass (1 up to N-1)
     for k in range(1, N):
-        S_w[k] = (S_w[k] + S_w[k - 1]) / 2.0
+        Sw[k] = (Sw[k] + Sw[k - 1]) / 2.0
     
-    return S_w
+    return Sw
 
-def solve_lpc_coeffs(X_w, order=4):
+def solve_lpc_coeffs(Xw, order=4):
     """
     Solve for Linear Prediction Coefficients using autocorrelation method.
     
@@ -140,13 +142,14 @@ def solve_lpc_coeffs(X_w, order=4):
     Returns:
         a: LPC coefficients [a1, a2, ..., a_p]
     """
-    X_w = np.asarray(X_w).flatten()
+
+    Xw = np.asarray(Xw).flatten()
     p = order
     
     # Compute autocorrelation values r(0), r(1), ..., r(p)
     r = np.zeros(p + 1)
     for lag in range(p + 1):
-        r[lag] = np.sum(X_w[lag:] * X_w[:len(X_w) - lag])
+        r[lag] = np.sum(Xw[lag:] * Xw[:len(Xw) - lag])
     
     # Build autocorrelation matrix R (Toeplitz structure)
     R = np.zeros((p, p))
@@ -158,7 +161,6 @@ def solve_lpc_coeffs(X_w, order=4):
     r_vec = r[1:p + 1]
     
     # Solve normal equations
-    # Add small regularization for numerical stability
     try:
         a = np.linalg.solve(R + 1e-10 * np.eye(p), r_vec)
     except np.linalg.LinAlgError:
