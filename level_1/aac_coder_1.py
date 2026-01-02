@@ -1,8 +1,8 @@
 import numpy as np
 import soundfile as sf
 
-from SSC import SSC
-from filter_bank import filter_bank
+from level_1.SSC import SSC
+from level_1.filter_bank import filter_bank
 
 
 def aac_coder_1(filename_in):

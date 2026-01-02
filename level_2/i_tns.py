@@ -18,32 +18,72 @@ def i_tns(frame_F_in, frame_type, tns_coeffs):
     """
     frame_F_in = np.asarray(frame_F_in)
     tns_coeffs = np.asarray(tns_coeffs)
-    
-    if frame_type == 'ESH' or frame_type == 'EIGHT_SHORT_SEQUENCE':
 
-        # Process 8 short subframes
-        frame_F_out = np.zeros((128, 8))
-        
-        for subframe in range(8):
+    # Detect short vs long blocks by shape rather than solely by frame_type
+    if frame_F_in.ndim == 1:
+        n0 = frame_F_in.shape[0]
+        if n0 == 1024:
+            is_short = False
+        elif n0 == 128:
+            frame_F_in = frame_F_in.reshape(128, 1)
+            is_short = True
+        else:
+            is_short = frame_type in ('ESH', 'EIGHT_SHORT_SEQUENCE')
+    else:
+        rows = frame_F_in.shape[0]
+        if rows == 128:
+            is_short = True
+        elif rows == 1024:
+            is_short = False
+        else:
+            is_short = frame_type in ('ESH', 'EIGHT_SHORT_SEQUENCE')
 
-            # Extract subframe coefficients and TNS coefficients
+    if is_short:
+        # Handle any number of short subframes
+        n_subframes = frame_F_in.shape[1]
+        frame_F_out = np.zeros_like(frame_F_in)
+
+        # Normalize tns_coeffs shape to (4, n_subframes)
+        if tns_coeffs.ndim == 1:
+            tns_coeffs = tns_coeffs.reshape(-1, 1)
+        if tns_coeffs.shape[1] != n_subframes:
+            # Try to broadcast/reshape if possible
+            if tns_coeffs.shape[1] == 1:
+                tns_coeffs = np.tile(tns_coeffs, (1, n_subframes))
+            else:
+                # Mismatch — continue but will pick columns safely
+                pass
+
+        for subframe in range(n_subframes):
             Y = frame_F_in[:, subframe]
-            a = tns_coeffs[:, subframe]
-            
+            # Safely pick coefficients column (or last column if missing)
+            if tns_coeffs.shape[1] > subframe:
+                a = tns_coeffs[:, subframe]
+            else:
+                a = tns_coeffs[:, -1]
+
             # Apply inverse TNS filter
             X = apply_inverse_tns_filter(Y, a)
-            
-            frame_F_out[:, subframe] = X
-    
-    else:
 
-        # Process single long frame
+            X = np.asarray(X).flatten()
+            # Defensive resizing if lengths differ
+            if X.shape[0] != frame_F_out.shape[0]:
+                if X.shape[0] > frame_F_out.shape[0]:
+                    X = X[: frame_F_out.shape[0]]
+                else:
+                    X = np.pad(X, (0, frame_F_out.shape[0] - X.shape[0]))
+
+            frame_F_out[:, subframe] = X
+
+    else:
+        # Long frame
         Y = frame_F_in.flatten()
         a = tns_coeffs.flatten()
-        
+
         # Apply inverse TNS filter
         X = apply_inverse_tns_filter(Y, a)
-        
+
+        X = np.asarray(X).flatten()
         frame_F_out = X.reshape(-1, 1)
     
     return frame_F_out

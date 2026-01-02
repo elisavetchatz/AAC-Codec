@@ -4,7 +4,7 @@ import soundfile as sf
 
 from aac_coder_2 import aac_coder_2
 from i_aac_coder_2 import i_aac_coder_2
-from utils_level_1.plotting_utils import (
+from level_1.utils_level_1.plotting_utils import (
     plot_audio_waveform,
     plot_audio_spectrogram,
     plot_encoding_process,
@@ -35,6 +35,7 @@ def demo_aac_2(filename_in, filename_out):
     # Encode & Decode
     aac_seq_2 = aac_coder_2(filename_in)
     x_decoded = i_aac_coder_2(aac_seq_2, filename_out)
+
     # Match signal lengths
     if len(x_original) != len(x_decoded):
         min_len = min(len(x_original), len(x_decoded))
@@ -53,7 +54,7 @@ def demo_aac_2(filename_in, filename_out):
         SNR = float('inf')
 
     # plots
-    plot = False
+    plot = True
     plot_dir = 'level_2/outputs/plots/sin_window'
     if plot:
         os.makedirs(plot_dir, exist_ok=True)
@@ -82,3 +83,13 @@ def demo_aac_2(filename_in, filename_out):
         print(f"All plots saved! SNR: {SNR:.2f} dB")
 
     return SNR
+
+
+if __name__ == "__main__":
+    # Create outputs directory and subdirectories
+    os.makedirs("level_2/outputs/signals", exist_ok=True)
+    
+    filename_in = "LicorDeCalandraca.wav"
+    filename_out = "level_2/outputs/signals/output_level_2_SIN.wav"
+    SNR = demo_aac_2(filename_in, filename_out)
+    print(f"SNR between original and decoded signal: {SNR:.2f} dB")
