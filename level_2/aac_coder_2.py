@@ -1,3 +1,6 @@
+from tns import tns
+from aac_coder_1 import aac_coder_1
+
 def aac_coder_2(filename_in):
     """
     AAC coder level 2 implementation with TNS support.
@@ -17,4 +20,31 @@ def aac_coder_2(filename_in):
                                    - aac_seq_2[i]["chl"]["frame_F"]: MDCT coefficients for left channel after TNS
                                    - aac_seq_2[i]["chr"]["frame_F"]: MDCT coefficients for right channel after TNS
     """
+    # Get Level 1 encoded sequence (SSC + Filterbank)
+    aac_seq_1 = aac_coder_1(filename_in)
+    aac_seq_2 = []
+
+    # Process each frame independently
+    for frame in aac_seq_1:
+        frame_type = frame["frame_type"]
+        win_type = frame["win_type"]
+
+        # Apply TNS independently to left and right channels
+        chl_out, tns_chl = tns(frame["chl"]["frame_F"], frame_type)
+        chr_out, tns_chr = tns(frame["chr"]["frame_F"], frame_type)
+
+        # Store Level 2 encoded frame
+        aac_seq_2.append({
+            "frame_type": frame_type,
+            "win_type": win_type,
+            "chl": {
+                "frame_F": chl_out,
+                "tns_coeffs": tns_chl
+            },
+            "chr": {
+                "frame_F": chr_out,
+                "tns_coeffs": tns_chr
+            }
+        })
+
     return aac_seq_2
