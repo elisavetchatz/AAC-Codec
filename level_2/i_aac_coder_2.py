@@ -1,3 +1,6 @@
+from i_tns import i_tns
+from i_aac_coder_1 import i_aac_coder_1
+
 def i_aac_coder_2(aac_seq_2, filename_out):
     """
     Inverse AAC coder level 2 implementation (reverses aac_coder_2()).
@@ -18,4 +21,33 @@ def i_aac_coder_2(aac_seq_2, filename_out):
     Returns:
         x (array): Decoded sample sequence
     """
+    aac_seq_1 = []
+    # Remove TNS by applying inverse TNS on each frame
+    for frame in aac_seq_2:
+        frame_type = frame["frame_type"]
+        win_type = frame["win_type"]
+
+        # Inverse TNS per channel
+        frame_F_L = i_tns(
+            frame["chl"]["frame_F"],
+            frame_type,
+            frame["chl"]["tns_coeffs"]
+        )
+
+        frame_F_R = i_tns(
+            frame["chr"]["frame_F"],
+            frame_type,
+            frame["chr"]["tns_coeffs"]
+        )
+
+        # Reconstruct compatible structure
+        aac_seq_1.append({
+            "frame_type": frame_type,
+            "win_type": win_type,
+            "chl": {"frame_F": frame_F_L},
+            "chr": {"frame_F": frame_F_R}
+        })
+
+    # Delegate reconstruction to Level 1 inverse coder
+    x = i_aac_coder_1(aac_seq_1, filename_out)
     return x
