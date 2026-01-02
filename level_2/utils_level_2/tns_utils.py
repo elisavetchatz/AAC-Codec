@@ -115,8 +115,8 @@ def compute_normalization_factors(X, frame_type):
         else:
             bj_next = N
         
-        # S_w(k) = sqrt(P(j)) for all k in band j
-        Sw[bj:bj_next] = np.sqrt(P[j])
+        # S_w(k) = P(j) for all k in band j (match spec: use band energy)
+        Sw[bj:bj_next] = P[j]
     
     # Smoothing: backward pass (1022 down to 0)
     for k in range(N - 2, -1, -1):
@@ -183,6 +183,7 @@ def quantize_tns_coeffs(a, step=0.1):
     """
 
     a_quant = np.round(a / step) * step
-    a_quant = np.clip(a_quant, -0.8, 0.7)
+    # Clip to ±0.75 for 4-bit quantizer with step=0.1
+    a_quant = np.clip(a_quant, -0.75, 0.75)
     
     return a_quant
