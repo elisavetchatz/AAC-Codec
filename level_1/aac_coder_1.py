@@ -38,6 +38,7 @@ def aac_coder_1(filename_in):
     prev_frame_type = "OLS"
 
     for i in range(len(frames)):
+        print(f"Encoding frame {i + 1} of {len(frames)}")
         # Current frame in time domain
         frame_T = frames[i]
 
@@ -47,7 +48,7 @@ def aac_coder_1(filename_in):
         # Determine frame type using Sequence Segmentation Control
         frame_type = SSC(frame_T, next_frame_T, prev_frame_type)
 
-        # Window type (fixed to sinusoidal in this implementation)
+        # Window type
         win_type = "SIN"
 
         # Apply filter bank (MDCT)
