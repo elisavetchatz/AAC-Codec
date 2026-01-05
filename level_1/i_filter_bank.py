@@ -1,8 +1,8 @@
 import numpy as np
 
-from utils_level_1.create_kbd_window import create_kbd_window  
-from utils_level_1.create_sin_window import create_sin_window  
-from utils_level_1.imdct import imdct  
+from level_1.utils_level_1.create_kbd_window import create_kbd_window
+from level_1.utils_level_1.create_sin_window import create_sin_window
+from level_1.utils_level_1.imdct import imdct
 
 
 def i_filter_bank(frame_F, frame_type, win_type):
@@ -20,8 +20,8 @@ def i_filter_bank(frame_F, frame_type, win_type):
     Returns:
         frame_T: 1-D array of 2048 time-domain samples for one channel
     """
-    # Flatten to 1-D: (1024,1) → (1024,) or (128,8) → (1024,)
-    frame_F = np.asarray(frame_F).flatten(order='C')
+
+    frame_F = np.asarray(frame_F)
     
     # Create windows based on win_type
     if win_type == 'KBD':
@@ -38,6 +38,9 @@ def i_filter_bank(frame_F, frame_type, win_type):
     # Process based on frame_type
     if frame_type == 'ONLY_LONG_SEQUENCE' or frame_type == 'OLS':
 
+        # Flatten MDCT coefficients
+        frame_F = frame_F.flatten()
+
         # Use symmetric long window for entire frame
         # Apply IMDCT (1024 -> 2048 samples)
         reconstructed = imdct(frame_F)
@@ -45,6 +48,8 @@ def i_filter_bank(frame_F, frame_type, win_type):
         frame_T = reconstructed * W_long
     
     elif frame_type == 'LONG_START_SEQUENCE' or frame_type == 'LSS':
+
+        frame_F = frame_F.flatten()
 
         # Asymmetric window: [left_Wl/2 (1024), 448 ones, right_Ws/2 (128), 448 zeros]
         window = np.concatenate([
@@ -58,6 +63,8 @@ def i_filter_bank(frame_F, frame_type, win_type):
         frame_T = reconstructed * window
     
     elif frame_type == 'LONG_STOP_SEQUENCE' or frame_type == 'LPS':
+
+        frame_F = frame_F.flatten()
 
         # Asymmetric window: [448 zeros, left_Ws/2 (128), 448 ones, right_Wl/2 (1024)]
         window = np.concatenate([
@@ -80,7 +87,7 @@ def i_filter_bank(frame_F, frame_type, win_type):
         for i in range(8):
             
             # Extract MDCT coefficients for this subframe (128 coefficients)
-            mdct_coeffs = frame_F[i*128:(i+1)*128]
+            mdct_coeffs = frame_F[:, i]
             
             # Apply IMDCT (128 -> 256 samples)
             subframe_reconstructed = imdct(mdct_coeffs)

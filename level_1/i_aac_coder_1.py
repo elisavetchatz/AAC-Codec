@@ -1,7 +1,7 @@
 import numpy as np
 import soundfile as sf
 
-from i_filter_bank import i_filter_bank
+from level_1.i_filter_bank import i_filter_bank
 
 def i_aac_coder_1(aac_seq_1, filename_out):
     """

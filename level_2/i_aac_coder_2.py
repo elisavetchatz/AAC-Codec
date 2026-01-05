@@ -1,5 +1,5 @@
 from i_tns import i_tns
-from i_aac_coder_1 import i_aac_coder_1
+from level_1.i_aac_coder_1 import i_aac_coder_1
 
 def i_aac_coder_2(aac_seq_2, filename_out):
     """

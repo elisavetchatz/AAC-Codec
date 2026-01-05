@@ -1,5 +1,10 @@
-from tns import tns
-from aac_coder_1 import aac_coder_1
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from level_2.tns import tns
+from level_1.aac_coder_1 import aac_coder_1
 
 def aac_coder_2(filename_in):
     """
