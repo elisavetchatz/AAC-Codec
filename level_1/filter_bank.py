@@ -1,8 +1,8 @@
 import numpy as np
 
-from level_1.utils_level_1.create_kbd_window import create_kbd_window  
-from level_1.utils_level_1.create_sin_window import create_sin_window  
-from level_1.utils_level_1.mdct import mdct  
+from level_1.utils_level_1.create_kbd_window import create_kbd_window
+from level_1.utils_level_1.create_sin_window import create_sin_window
+from level_1.utils_level_1.mdct import mdct
 
 def filter_bank(frame_T, frame_type, win_type):
     """
@@ -72,7 +72,7 @@ def filter_bank(frame_T, frame_type, win_type):
         
         # Use central 1152 samples, ignore 2x448 samples on sides
         # Divide into 8 overlapping 50% subframes of 256 samples each
-        frame_F = np.zeros((1024, 2))  # 8 subframes * 128 coefficients each
+        frame_F = np.zeros((128, 8, 2)) # 8 subframes * 128 coefficients each
         
         for ch in range(2):
             # Extract central 1152 samples
@@ -91,7 +91,7 @@ def filter_bank(frame_T, frame_type, win_type):
                 mdct_coeffs = mdct(windowed)
                 
                 # Store in frame_F (each subframe contributes 128 coefficients)
-                frame_F[i*128:(i+1)*128, ch] = mdct_coeffs
+                frame_F[:, i, ch] = mdct_coeffs
     
     else:
         raise ValueError(f"Unknown frame type: {frame_type}")

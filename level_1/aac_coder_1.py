@@ -1,8 +1,8 @@
 import numpy as np
 import soundfile as sf
 
-from level_1.SSC import SSC
 from level_1.filter_bank import filter_bank
+from level_1.SSC import SSC
 
 
 def aac_coder_1(filename_in):
@@ -53,11 +53,16 @@ def aac_coder_1(filename_in):
 
         # Apply filter bank (MDCT)
         frame_F = filter_bank(frame_T, frame_type, win_type)
+    
+        if frame_type == "ESH":
+            print("ESH frame_F shape:", frame_F.shape)
 
         # Separate left and right channel MDCT coefficients
         if frame_type == "ESH":
-            chl_F = frame_F[:, 0::2]
-            chr_F = frame_F[:, 1::2]
+            chl_F = frame_F[:, :, 0]
+            chr_F = frame_F[:, :, 1]
+            print("chl_F shape:", chl_F.shape, "chr_F shape:", chr_F.shape)
+
         else:
             chl_F = frame_F[:, 0]
             chr_F = frame_F[:, 1]
