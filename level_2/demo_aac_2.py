@@ -54,7 +54,7 @@ def demo_aac_2(filename_in, filename_out):
         SNR = float('inf')
 
     # plots
-    plot = True
+    plot = False
     plot_dir = 'level_2/outputs/plots/sin_window'
     if plot:
         os.makedirs(plot_dir, exist_ok=True)
