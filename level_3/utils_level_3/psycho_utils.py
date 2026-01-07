@@ -288,3 +288,16 @@ def compute_tonality_index(cb):
     tb = np.clip(tb, 0.0, 1.0)
     
     return tb
+
+
+def compute_snr(tb, TMN=18.0, NMT=6.0):
+    """
+    Compute the required Signal-to-Noise Ratio (SNR) for each band based on tonality
+        
+    Returns:
+        array: Required SNR in dB for each band
+    """
+
+    SNR = tb * TMN + (1 - tb) * NMT
+    
+    return SNR

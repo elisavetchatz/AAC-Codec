@@ -3,7 +3,11 @@ import numpy as np
 from utils_level_3.psycho_utils import (get_spreading_tables, process_frame_fft, 
                                          compute_predictions, compute_predictability,
                                          compute_band_energy_predictability,
-                                         apply_spreading_function, compute_tonality_index)
+                                         apply_spreading_function, compute_tonality_index,
+                                         compute_snr)
+
+# True to print psychoacoustic model statistics
+DEBUG = False
 
 
 def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
@@ -78,6 +82,7 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         cb_all = []
         en_all = []
         tb_all = []
+        SNR_all = []
         for i in range(num_windows):
             r_current = all_subframes[16 + i]['r']
             c = predictabilities[i]
@@ -93,8 +98,22 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
             # Step 7: Compute tonality index
             tb = compute_tonality_index(cb)
             tb_all.append(tb)
+            
+            # Step 8: Compute required SNR based on tonality
+            SNR_dB = compute_snr(tb)
+            SNR_all.append(SNR_dB)
         
-        # TODO: Continue with step 8 of psychoacoustic model for short frames
+        # Debug info: Show statistics for first subframe
+        if DEBUG:
+            print("\n=== Short Frame Psychoacoustic Model Statistics (Subframe 0) ===")
+            tb_0 = tb_all[0]
+            SNR_0 = SNR_all[0]
+            en_0 = en_all[0]
+            print(f"Tonality index (tb): min={tb_0.min():.3f}, max={tb_0.max():.3f}, mean={tb_0.mean():.3f}")
+            print(f"Required SNR (dB): min={SNR_0.min():.1f}, max={SNR_0.max():.1f}, mean={SNR_0.mean():.1f}")
+            print(f"Normalized energy (en): min={en_0.min():.2e}, max={en_0.max():.2e}")
+        
+        # TODO: Continue with step 9 of psychoacoustic model for short frames
         
     else:  # OLS, LSS, LPS (long frames)
         num_bands = len(bval_long)
@@ -120,6 +139,21 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         # Step 7: Compute tonality index
         tb = compute_tonality_index(cb)
         
-        # TODO: Continue with step 8 of psychoacoustic model for long frames
+        # Step 8: Compute required SNR based on tonality
+        # TMN (Tone Masking Noise) = 18 dB: tonal signals mask noise easily
+        # NMT (Noise Masking Tone) = 6 dB: noise masks tones with lower SNR requirement
+        SNR_dB = compute_snr(tb)
+        
+        # Debug info: Show statistics of psychoacoustic parameters
+        if DEBUG:
+            print("\n=== Long Frame Psychoacoustic Model Statistics ===")
+            print(f"Tonality index (tb): min={tb.min():.3f}, max={tb.max():.3f}, mean={tb.mean():.3f}")
+            print(f"Required SNR (dB): min={SNR_dB.min():.1f}, max={SNR_dB.max():.1f}, mean={SNR_dB.mean():.1f}")
+            print(f"Normalized energy (en): min={en.min():.2e}, max={en.max():.2e}")
+            print(f"Interpretation:")
+            print(f"  - Tonal bands (tb>{0.7}): {np.sum(tb > 0.7)} / {num_bands}")
+            print(f"  - Noisy bands (tb<{0.3}): {np.sum(tb < 0.3)} / {num_bands}")
+        
+        # TODO: Continue with step 9 of psychoacoustic model for long frames
     
     return SMR
