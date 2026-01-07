@@ -8,7 +8,6 @@ from utils_level_3.psycho_utils import (get_spreading_tables, process_frame_fft,
                                          compute_energy_threshold, compute_qthr_hat,
                                          compute_npart, compute_smr)
 
-# True to print psychoacoustic model statistics
 DEBUG = False
 
 
@@ -48,7 +47,9 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         all_subframes = []
         
         for frame in [frame_T_prev_2, frame_T_prev_1, frame_T]:
+
             for subframe_idx in range(num_windows):
+
                 start_idx = subframe_idx * 128
                 end_idx = start_idx + 256
                 subframe = frame[start_idx:end_idx]
@@ -56,9 +57,11 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
                 r, f = process_frame_fft(subframe)
                 all_subframes.append({'r': r, 'f': f})
         
-        # Now compute predictions and predictability for each current subframe in one loop
+        # predictions and predictability
         predictabilities = []
+
         for i in range(num_windows):
+
             current_idx = 16 + i  # Current subframe index in all_subframes
             prev_1_idx = current_idx - 1  # Previous subframe
             prev_2_idx = current_idx - 2  # Previous-previous subframe
@@ -95,8 +98,10 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         qthr_hat_short = compute_qthr_hat(qsthr_short, N=256)
         
         for i in range(num_windows):
+
             r_current = all_subframes[16 + i]['r']
             c = predictabilities[i]
+
             e_bands, c_bands = compute_band_energy_predictability(r_current, c, wlow_short, whigh_short)
             e_bands_all.append(e_bands)
             c_bands_all.append(c_bands)
@@ -126,26 +131,27 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
             npart = compute_npart(nb, qthr_hat_short)
             npart_all.append(npart)
         
-        # Debug info: Show statistics for first subframe
-        if DEBUG:
-            print("\n=== Short Frame Psychoacoustic Model Statistics (Subframe 0) ===")
-            tb_0 = tb_all[0]
-            SNR_0 = SNR_all[0]
-            en_0 = en_all[0]
-            nb_0 = nb_all[0]
-            npart_0 = npart_all[0]
-            print(f"Tonality index (tb): min={tb_0.min():.3f}, max={tb_0.max():.3f}, mean={tb_0.mean():.3f}")
-            print(f"Required SNR (dB): min={SNR_0.min():.1f}, max={SNR_0.max():.1f}, mean={SNR_0.mean():.1f}")
-            print(f"Normalized energy (en): min={en_0.min():.2e}, max={en_0.max():.2e}")
-            print(f"Energy threshold (nb): min={nb_0.min():.2e}, max={nb_0.max():.2e}")
-            print(f"Final noise level (npart): min={npart_0.min():.2e}, max={npart_0.max():.2e}")
+        # if DEBUG:
+        #     print("\n=== Short Frame Psychoacoustic Model Statistics (Subframe 0) ===")
+        #     tb_0 = tb_all[0]
+        #     SNR_0 = SNR_all[0]
+        #     en_0 = en_all[0]
+        #     nb_0 = nb_all[0]
+        #     npart_0 = npart_all[0]
+        #     print(f"Tonality index (tb): min={tb_0.min():.3f}, max={tb_0.max():.3f}, mean={tb_0.mean():.3f}")
+        #     print(f"Required SNR (dB): min={SNR_0.min():.1f}, max={SNR_0.max():.1f}, mean={SNR_0.mean():.1f}")
+        #     print(f"Normalized energy (en): min={en_0.min():.2e}, max={en_0.max():.2e}")
+        #     print(f"Energy threshold (nb): min={nb_0.min():.2e}, max={nb_0.max():.2e}")
+        #     print(f"Final noise level (npart): min={npart_0.min():.2e}, max={npart_0.max():.2e}")
         
         # Step 12: Compute Signal-to-Mask Ratio (SMR) for each subframe
         for i in range(num_windows):
+
             SMR_bands = compute_smr(e_bands_all[i], npart_all[i])
             SMR[:, i] = SMR_bands
         
-    else:  # OLS, LSS, LPS (long frames)
+    else:
+
         num_bands = len(bval_long)
         SMR = np.zeros((num_bands, 1))
         
@@ -170,19 +176,16 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         tb = compute_tonality_index(cb)
         
         # Step 8: Compute required SNR based on tonality
-        # TMN (Tone Masking Noise) = 18 dB: tonal signals mask noise easily
-        # NMT (Noise Masking Tone) = 6 dB: noise masks tones with lower SNR requirement
         SNR_dB = compute_snr(tb)
         
-        # Debug info: Show statistics of psychoacoustic parameters
-        if DEBUG:
-            print("\n=== Long Frame Psychoacoustic Model Statistics ===")
-            print(f"Tonality index (tb): min={tb.min():.3f}, max={tb.max():.3f}, mean={tb.mean():.3f}")
-            print(f"Required SNR (dB): min={SNR_dB.min():.1f}, max={SNR_dB.max():.1f}, mean={SNR_dB.mean():.1f}")
-            print(f"Normalized energy (en): min={en.min():.2e}, max={en.max():.2e}")
-            print(f"Interpretation:")
-            print(f"  - Tonal bands (tb>{0.7}): {np.sum(tb > 0.7)} / {num_bands}")
-            print(f"  - Noisy bands (tb<{0.3}): {np.sum(tb < 0.3)} / {num_bands}")
+        # if DEBUG:
+        #     print("\n=== Long Frame Psychoacoustic Model Statistics ===")
+        #     print(f"Tonality index (tb): min={tb.min():.3f}, max={tb.max():.3f}, mean={tb.mean():.3f}")
+        #     print(f"Required SNR (dB): min={SNR_dB.min():.1f}, max={SNR_dB.max():.1f}, mean={SNR_dB.mean():.1f}")
+        #     print(f"Normalized energy (en): min={en.min():.2e}, max={en.max():.2e}")
+        #     print(f"Interpretation:")
+        #     print(f"  - Tonal bands (tb>{0.7}): {np.sum(tb > 0.7)} / {num_bands}")
+        #     print(f"  - Noisy bands (tb<{0.3}): {np.sum(tb < 0.3)} / {num_bands}")
         
         # Step 9: Convert SNR from dB to energy ratio
         bc = db_to_energy_ratio(SNR_dB)
@@ -191,14 +194,12 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         nb = compute_energy_threshold(en, bc)
         
         # Step 11: Compute absolute threshold in quiet and final noise level
-        # N = 2048 for long frames
         qthr_hat = compute_qthr_hat(qsthr_long, N=2048)
         npart = compute_npart(nb, qthr_hat)
         
         # Step 12: Compute Signal-to-Mask Ratio (SMR)
         SMR_bands = compute_smr(e_bands, npart)
         
-        # Format output: SMR should be (num_bands, 1) for long frames
         SMR[:, 0] = SMR_bands
     
     return SMR

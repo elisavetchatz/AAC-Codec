@@ -354,14 +354,7 @@ def compute_smr(e_bands, npart):
 
 def compute_mdct_energy(MDCT_coeffs, wlow, whigh):
     """
-    Compute energy of MDCT coefficients for each scalefactor band.
-    
-    Formula:
-        P(b) = Σ_{k=wlow(b)}^{whigh(b)} X(k)²
-    
-    where X(k) are the MDCT coefficients.
-    
-    This function is used by the quantizer to compute the energy per band,
+    Used by the quantizer to compute the energy per band,
     which is then combined with SMR to get the psychoacoustic threshold T(b).
     
     Args:
@@ -372,6 +365,7 @@ def compute_mdct_energy(MDCT_coeffs, wlow, whigh):
     Returns:
         array: Energy P(b) for each scalefactor band
     """
+
     num_bands = len(wlow)
     P = np.zeros(num_bands)
     
@@ -379,33 +373,14 @@ def compute_mdct_energy(MDCT_coeffs, wlow, whigh):
         w_start = wlow[b]
         w_end = whigh[b] + 1  # +1 because Python slicing is exclusive at the end
         
-        # Extract MDCT coefficients for this band
         X_band = MDCT_coeffs[w_start:w_end]
-        
-        # Compute energy: P(b) = Σ X(k)²
         P[b] = np.sum(X_band ** 2)
     
     return P
 
 
-def compute_threshold(P, SMR):
-    """
-    Compute the psychoacoustic threshold for each band.
-    
-    Formula:
-        T(b) = P(b) / SMR(b)
-    
-    This is the maximum allowable quantization noise energy for each band.
-    The quantizer must keep quantization noise below this threshold to ensure
-    the noise is masked by the psychoacoustic model.
-    
-    Args:
-        P (array): MDCT coefficient energy for each band (from compute_mdct_energy)
-        SMR (array): Signal-to-Mask Ratio for each band (from psycho)
-        
-    Returns:
-        array: Threshold T(b) for each band
-    """
+def compute_psycho_threshold(P, SMR):
+
     epsilon = 1e-10
     T = P / np.maximum(SMR, epsilon)
     
