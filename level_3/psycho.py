@@ -6,7 +6,7 @@ from utils_level_3.psycho_utils import (get_spreading_tables, process_frame_fft,
                                          apply_spreading_function, compute_tonality_index,
                                          compute_snr, db_to_energy_ratio,
                                          compute_energy_threshold, compute_qthr_hat,
-                                         compute_npart)
+                                         compute_npart, compute_smr)
 
 # True to print psychoacoustic model statistics
 DEBUG = False
@@ -23,7 +23,7 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         frame_T_prev_2 (array): Frame before the previous frame of frame_T in the same channel
     
     Returns:
-        SMR (array): Signal to Mask Ratio
+        SMR (array): Signal-to-Mask Ratio
                     Dimensions: 42x8 for EIGHT_SHORT_SEQUENCE frames, 69x1 for all other types
     """
     
@@ -140,7 +140,10 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
             print(f"Energy threshold (nb): min={nb_0.min():.2e}, max={nb_0.max():.2e}")
             print(f"Final noise level (npart): min={npart_0.min():.2e}, max={npart_0.max():.2e}")
         
-        # TODO: Continue with step 12 of psychoacoustic model for short frames
+        # Step 12: Compute Signal-to-Mask Ratio (SMR) for each subframe
+        for i in range(num_windows):
+            SMR_bands = compute_smr(e_bands_all[i], npart_all[i])
+            SMR[:, i] = SMR_bands
         
     else:  # OLS, LSS, LPS (long frames)
         num_bands = len(bval_long)
@@ -192,6 +195,10 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         qthr_hat = compute_qthr_hat(qsthr_long, N=2048)
         npart = compute_npart(nb, qthr_hat)
         
-        # TODO: Continue with step 12 of psychoacoustic model for long frames
+        # Step 12: Compute Signal-to-Mask Ratio (SMR)
+        SMR_bands = compute_smr(e_bands, npart)
+        
+        # Format output: SMR should be (num_bands, 1) for long frames
+        SMR[:, 0] = SMR_bands
     
     return SMR
