@@ -2,7 +2,8 @@ import numpy as np
 
 from utils_level_3.psycho_utils import (get_spreading_tables, process_frame_fft, 
                                          compute_predictions, compute_predictability,
-                                         compute_band_energy_predictability)
+                                         compute_band_energy_predictability,
+                                         apply_spreading_function)
 
 
 def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
@@ -74,28 +75,32 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         # Step 5: Compute energy and weighted predictability for each subframe
         e_bands_all = []
         c_bands_all = []
+        cb_all = []
+        en_all = []
         for i in range(num_windows):
             r_current = all_subframes[16 + i]['r']
             c = predictabilities[i]
             e_bands, c_bands = compute_band_energy_predictability(r_current, c, wlow_short, whigh_short)
             e_bands_all.append(e_bands)
             c_bands_all.append(c_bands)
+            
+            # Step 6: Apply spreading function and normalize
+            cb, en = apply_spreading_function(e_bands, c_bands, spreading_short)
+            cb_all.append(cb)
+            en_all.append(en)
         
-        # TODO: Continue with step 6 of psychoacoustic model for short frames
+        # TODO: Continue with step 7 of psychoacoustic model for short frames
         
     else:  # OLS, LSS, LPS (long frames)
         num_bands = len(bval_long)
         SMR = np.zeros((num_bands, 1))
         
         # Step 2: Process the 3 frames (current + 2 previous) - each is 2048 samples
-        # Apply Hann window and compute FFT for each frame
         r_prev_2, f_prev_2 = process_frame_fft(frame_T_prev_2)
         r_prev_1, f_prev_1 = process_frame_fft(frame_T_prev_1)
         r_current, f_current = process_frame_fft(frame_T)
         
         # Step 3: Compute predictions using the 2 previous frames
-        # rpred(w) = 2*r_{-1}(w) - r_{-2}(w)
-        # fpred(w) = 2*f_{-1}(w) - f_{-2}(w)
         rpred, fpred = compute_predictions(r_prev_2, f_prev_2, r_prev_1, f_prev_1)
         
         # Step 4: Compute predictability measure c(w)
@@ -104,6 +109,9 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         # Step 5: Compute energy and weighted predictability for each band
         e_bands, c_bands = compute_band_energy_predictability(r_current, c, wlow_long, whigh_long)
         
-        # TODO: Continue with step 6 of psychoacoustic model for long frames
+        # Step 6: Apply spreading function and normalize
+        cb, en = apply_spreading_function(e_bands, c_bands, spreading_long)
+        
+        # TODO: Continue with step 7 of psychoacoustic model for long frames
     
     return SMR

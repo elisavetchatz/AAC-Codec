@@ -225,7 +225,7 @@ def compute_band_energy_predictability(r, c, wlow, whigh):
     Returns:
         tuple: (e_bands, c_bands)
     """
-    
+
     num_bands = len(wlow)
     e_bands = np.zeros(num_bands)
     c_bands = np.zeros(num_bands)
@@ -246,3 +246,25 @@ def compute_band_energy_predictability(r, c, wlow, whigh):
         c_bands[b] = np.sum(c_band * r_squared)
     
     return e_bands, c_bands
+
+
+def apply_spreading_function(e_bands, c_bands, spreading_table):
+    """    
+    Returns:
+        tuple: (cb, en)
+            - cb: Normalized predictability for each band
+            - en: Normalized energy for each band
+    """
+    ecb = e_bands @ spreading_table
+    
+    ct = c_bands @ spreading_table 
+    
+    # Normalize predictability: cb(b) = ct(b) / ecb(b)
+    epsilon = 1e-10
+    cb = ct / np.maximum(ecb, epsilon)
+    
+    # Normalize energy
+    spreading_sum = np.sum(spreading_table, axis=0)
+    en = ecb / np.maximum(spreading_sum, epsilon)
+    
+    return cb, en
