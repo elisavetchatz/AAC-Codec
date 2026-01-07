@@ -24,13 +24,15 @@ def aac_coder_2(filename_in):
                                    - aac_seq_2[i]["chr"]["tns_coeffs"]: Quantized TNS coefficients for right channel
                                    - aac_seq_2[i]["chl"]["frame_F"]: MDCT coefficients for left channel after TNS
                                    - aac_seq_2[i]["chr"]["frame_F"]: MDCT coefficients for right channel after TNS
+        frames (list): Time-domain frames (K length list of 2048x2 arrays)
     """
-    # Get Level 1 encoded sequence (SSC + Filterbank)
-    aac_seq_1 = aac_coder_1(filename_in)
+    # Get Level 1 encoded sequence (SSC + Filterbank) and time-domain frames
+    aac_seq_1, frames = aac_coder_1(filename_in)
     aac_seq_2 = []
 
     # Process each frame independently
     for frame in aac_seq_1:
+
         frame_type = frame["frame_type"]
         win_type = frame["win_type"]
 
@@ -52,4 +54,4 @@ def aac_coder_2(filename_in):
             }
         })
 
-    return aac_seq_2
+    return aac_seq_2, frames

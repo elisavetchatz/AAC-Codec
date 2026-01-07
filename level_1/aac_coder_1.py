@@ -21,6 +21,7 @@ def aac_coder_1(filename_in):
                                     - aac_seq_1[i]['chr']["frame_F"]: MDCT coefficients of right channel 
                                           * (128, 8) for EIGHT SHORT SEQUENCE - each column is one subframe
                                           * (1024, 1) for other frame types
+        frames (list): Time-domain frames (K length list of 2048x2 arrays)
     """
     x, fs = sf.read(filename_in)
     if fs != 48000 or x.ndim != 2 or x.shape[1] != 2:
@@ -77,4 +78,4 @@ def aac_coder_1(filename_in):
         # Update previous frame type
         prev_frame_type = frame_type
 
-    return aac_seq_1
+    return aac_seq_1, frames
