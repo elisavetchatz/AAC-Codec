@@ -159,3 +159,16 @@ def process_frame_fft(frame):
     r, f = compute_fft_analysis(windowed)
     
     return r, f
+
+
+def compute_predictions(r_prev_2, f_prev_2, r_prev_1, f_prev_1):
+    """
+    Compute predictions for magnitude and phase using linear extrapolation
+        
+    Returns:
+        tuple: (rpred, fpred) predicted magnitude and phase arrays
+    """
+    rpred = 2 * r_prev_1 - r_prev_2
+    fpred = 2 * f_prev_1 - f_prev_2
+    
+    return rpred, fpred
