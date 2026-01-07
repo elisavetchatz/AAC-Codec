@@ -1,6 +1,8 @@
 import numpy as np
 
-from utils_level_3.psycho_utils import get_spreading_tables, process_frame_fft, compute_predictions, compute_predictability
+from utils_level_3.psycho_utils import (get_spreading_tables, process_frame_fft, 
+                                         compute_predictions, compute_predictability,
+                                         compute_band_energy_predictability)
 
 
 def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
@@ -23,6 +25,10 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
     spreading_short = tables['spreading_short']
     bval_long = tables['bval_long']
     bval_short = tables['bval_short']
+    wlow_long = tables['wlow_long']
+    whigh_long = tables['whigh_long']
+    wlow_short = tables['wlow_short']
+    whigh_short = tables['whigh_short']
     
     if frame_type == 'ESH':
 
@@ -37,7 +43,7 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
                 start_idx = subframe_idx * 128
                 end_idx = start_idx + 256
                 subframe = frame[start_idx:end_idx]
-                
+
                 r, f = process_frame_fft(subframe)
                 all_subframes.append({'r': r, 'f': f})
         
@@ -65,7 +71,17 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
             c = compute_predictability(r_current, f_current, rpred, fpred)
             predictabilities.append(c)
         
-        # TODO: Continue with step 5 of psychoacoustic model for short frames
+        # Step 5: Compute energy and weighted predictability for each subframe
+        e_bands_all = []
+        c_bands_all = []
+        for i in range(num_windows):
+            r_current = all_subframes[16 + i]['r']
+            c = predictabilities[i]
+            e_bands, c_bands = compute_band_energy_predictability(r_current, c, wlow_short, whigh_short)
+            e_bands_all.append(e_bands)
+            c_bands_all.append(c_bands)
+        
+        # TODO: Continue with step 6 of psychoacoustic model for short frames
         
     else:  # OLS, LSS, LPS (long frames)
         num_bands = len(bval_long)
@@ -85,6 +101,9 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         # Step 4: Compute predictability measure c(w)
         c = compute_predictability(r_current, f_current, rpred, fpred)
         
-        # TODO: Continue with step 5 of psychoacoustic model for long frames
+        # Step 5: Compute energy and weighted predictability for each band
+        e_bands, c_bands = compute_band_energy_predictability(r_current, c, wlow_long, whigh_long)
+        
+        # TODO: Continue with step 6 of psychoacoustic model for long frames
     
     return SMR

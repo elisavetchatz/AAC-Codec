@@ -1,5 +1,14 @@
 import numpy as np
-from scipy.io import loadmat
+import os
+import sys
+
+# Add parent directories to path to import from level_2
+current_dir = os.path.dirname(os.path.abspath(__file__))
+level_3_dir = os.path.dirname(current_dir)
+root_dir = os.path.dirname(level_3_dir)
+sys.path.insert(0, root_dir)
+
+from level_2.utils_level_2.tns_utils import load_band_tables
 
 
 # Cache for pre-calculated spreading function tables
@@ -7,19 +16,9 @@ _spreading_tables_cache = None
 
 def load_bark_tables():
     """
-    Load the Bark scale tables from TableB219.mat file.
-    
-    Returns:
-        tuple: (B219a, B219b) arrays containing:
-            - B219a: Table for long frames (2048 samples)
-            - B219b: Table for short frames (256 samples)
+    Uses the existing function from tns_utils
     """
-    mat_data = loadmat("TableB219.mat")
-
-    b219a_array = mat_data['B219a']
-    b219b_array = mat_data['B219b']
-
-    return b219a_array, b219b_array
+    return load_band_tables()
 
 
 def spreading_function(i, j, bval):
@@ -86,6 +85,10 @@ def get_spreading_tables():
             - 'spreading_short': Spreading function table for short frames (42x42)
             - 'bval_long': Central frequencies for long frames
             - 'bval_short': Central frequencies for short frames
+            - 'wlow_long': Lower frequency indices for long frame bands
+            - 'whigh_long': Upper frequency indices for long frame bands
+            - 'wlow_short': Lower frequency indices for short frame bands
+            - 'whigh_short': Upper frequency indices for short frame bands
     """
     global _spreading_tables_cache
     
@@ -93,9 +96,20 @@ def get_spreading_tables():
 
         B219a, B219b = load_bark_tables()
         
-        # Extract bval 
+        # Extract columns from tables
+        # Column 0: band index
+        # Column 1: wlow (lower frequency index)
+        # Column 2: bval (central frequency)
+        # Column 3: whigh (upper frequency index)
+        # Column 4: width
+        
         bval_long = B219a[:, 2] 
         bval_short = B219b[:, 2]
+        
+        wlow_long = B219a[:, 1].astype(int)
+        whigh_long = B219a[:, 3].astype(int)
+        wlow_short = B219b[:, 1].astype(int)
+        whigh_short = B219b[:, 3].astype(int)
         
         spreading_long = calculate_spreading_function_table(bval_long)
         spreading_short = calculate_spreading_function_table(bval_short)
@@ -105,7 +119,11 @@ def get_spreading_tables():
             'spreading_long': spreading_long,
             'spreading_short': spreading_short,
             'bval_long': bval_long,
-            'bval_short': bval_short
+            'bval_short': bval_short,
+            'wlow_long': wlow_long,
+            'whigh_long': whigh_long,
+            'wlow_short': wlow_short,
+            'whigh_short': whigh_short
         }
     
     return _spreading_tables_cache
@@ -179,6 +197,7 @@ def compute_predictability(r, f, rpred, fpred):
     Returns:
         array: Predictability measure c for each frequency bin
     """
+
     # polar to Cartesian
     real_current = r * np.cos(f)
     imag_current = r * np.sin(f)
@@ -197,3 +216,33 @@ def compute_predictability(r, f, rpred, fpred):
     c = numerator / denominator
     
     return c
+
+
+def compute_band_energy_predictability(r, c, wlow, whigh):
+    """
+    Compute energy and weighted predictability for each critical band
+        
+    Returns:
+        tuple: (e_bands, c_bands)
+    """
+    
+    num_bands = len(wlow)
+    e_bands = np.zeros(num_bands)
+    c_bands = np.zeros(num_bands)
+    
+    for b in range(num_bands):
+
+        w_start = wlow[b]
+        w_end = whigh[b] + 1
+        
+        r_band = r[w_start:w_end]
+        c_band = c[w_start:w_end]
+        
+        r_squared = r_band ** 2
+        
+        e_bands[b] = np.sum(r_squared)
+        
+        # Compute weighted predictability
+        c_bands[b] = np.sum(c_band * r_squared)
+    
+    return e_bands, c_bands
