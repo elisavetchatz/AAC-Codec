@@ -109,3 +109,53 @@ def get_spreading_tables():
         }
     
     return _spreading_tables_cache
+
+
+def apply_hann_window(signal):
+   
+    N = len(signal)
+    n = np.arange(N)
+
+    hann_window = 0.5 - 0.5 * np.cos(np.pi * (n + 0.5) / N)
+
+    return signal * hann_window
+
+
+def compute_fft_analysis(signal):
+    """
+    Compute FFT and extract magnitude and phase.
+    
+    For long frames (2048 samples): returns coefficients 0-1023
+    For short frames (256 samples): returns coefficients 0-127
+    
+    Args:
+        signal (array): Input signal already windowed
+        
+    Returns:
+        (r, f) where:
+            - r: magnitude for each frequency bin
+            - f: phase for each frequency bin (in radians)
+    """
+
+    # FFT
+    fft_result = np.fft.fft(signal)
+    
+    # For 2048: keep 0-1023, for 256: keep 0-127
+    num_coeffs = len(signal) // 2
+    fft_result = fft_result[:num_coeffs]
+    
+    r = np.abs(fft_result)
+    f = np.angle(fft_result)
+    
+    return r, f
+
+
+def process_frame_fft(frame):
+    """
+    Process a single frame/subframe: apply Hann window and compute FFT
+    """
+
+    windowed = apply_hann_window(frame)
+    r, f = compute_fft_analysis(windowed)
+    
+    return r, f
