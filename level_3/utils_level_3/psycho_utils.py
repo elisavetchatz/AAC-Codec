@@ -172,3 +172,28 @@ def compute_predictions(r_prev_2, f_prev_2, r_prev_1, f_prev_1):
     fpred = 2 * f_prev_1 - f_prev_2
     
     return rpred, fpred
+
+
+def compute_predictability(r, f, rpred, fpred):
+    """
+    Returns:
+        array: Predictability measure c for each frequency bin
+    """
+    # polar to Cartesian
+    real_current = r * np.cos(f)
+    imag_current = r * np.sin(f)
+    
+    real_pred = rpred * np.cos(fpred)
+    imag_pred = rpred * np.sin(fpred)
+    
+    numerator = (real_current - real_pred)**2 + (imag_current - imag_pred)**2
+    
+    # Calculate the denominator with small epsilon to avoid division by zero
+    denominator = r + np.abs(rpred)
+    epsilon = 1e-10
+    denominator = np.maximum(denominator, epsilon)
+    
+    # predictability measure
+    c = numerator / denominator
+    
+    return c
