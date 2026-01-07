@@ -3,7 +3,7 @@ import numpy as np
 from utils_level_3.psycho_utils import (get_spreading_tables, process_frame_fft, 
                                          compute_predictions, compute_predictability,
                                          compute_band_energy_predictability,
-                                         apply_spreading_function)
+                                         apply_spreading_function, compute_tonality_index)
 
 
 def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
@@ -77,6 +77,7 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         c_bands_all = []
         cb_all = []
         en_all = []
+        tb_all = []
         for i in range(num_windows):
             r_current = all_subframes[16 + i]['r']
             c = predictabilities[i]
@@ -88,8 +89,12 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
             cb, en = apply_spreading_function(e_bands, c_bands, spreading_short)
             cb_all.append(cb)
             en_all.append(en)
+            
+            # Step 7: Compute tonality index
+            tb = compute_tonality_index(cb)
+            tb_all.append(tb)
         
-        # TODO: Continue with step 7 of psychoacoustic model for short frames
+        # TODO: Continue with step 8 of psychoacoustic model for short frames
         
     else:  # OLS, LSS, LPS (long frames)
         num_bands = len(bval_long)
@@ -112,6 +117,9 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         # Step 6: Apply spreading function and normalize
         cb, en = apply_spreading_function(e_bands, c_bands, spreading_long)
         
-        # TODO: Continue with step 7 of psychoacoustic model for long frames
+        # Step 7: Compute tonality index
+        tb = compute_tonality_index(cb)
+        
+        # TODO: Continue with step 8 of psychoacoustic model for long frames
     
     return SMR

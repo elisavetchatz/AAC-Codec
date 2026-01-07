@@ -268,3 +268,23 @@ def apply_spreading_function(e_bands, c_bands, spreading_table):
     en = ecb / np.maximum(spreading_sum, epsilon)
     
     return cb, en
+
+
+def compute_tonality_index(cb):
+    """    
+    Args:
+        cb (array): Normalized predictability for each band
+        
+    Returns:
+        array: Tonality index for each band, values in (0, 1)
+    """
+    # epsilon to avoid log(0)
+    epsilon = 1e-10
+    cb_safe = np.maximum(cb, epsilon)
+    
+    # tonality index
+    tb = -0.299 - 0.43 * np.log(cb_safe)
+    
+    tb = np.clip(tb, 0.0, 1.0)
+    
+    return tb
