@@ -5,7 +5,8 @@ from utils_level_3.psycho_utils import (get_spreading_tables, process_frame_fft,
                                          compute_band_energy_predictability,
                                          apply_spreading_function, compute_tonality_index,
                                          compute_snr, db_to_energy_ratio,
-                                         compute_energy_threshold)
+                                         compute_energy_threshold, compute_qthr_hat,
+                                         compute_npart)
 
 # True to print psychoacoustic model statistics
 DEBUG = False
@@ -35,6 +36,8 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
     whigh_long = tables['whigh_long']
     wlow_short = tables['wlow_short']
     whigh_short = tables['whigh_short']
+    qsthr_long = tables['qsthr_long']
+    qsthr_short = tables['qsthr_short']
     
     if frame_type == 'ESH':
 
@@ -86,6 +89,11 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         SNR_all = []
         bc_all = []
         nb_all = []
+        npart_all = []
+        
+        # Pre-compute absolute threshold in quiet for short frames (N = 256)
+        qthr_hat_short = compute_qthr_hat(qsthr_short, N=256)
+        
         for i in range(num_windows):
             r_current = all_subframes[16 + i]['r']
             c = predictabilities[i]
@@ -113,6 +121,10 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
             # Step 10: Compute energy threshold (masking threshold)
             nb = compute_energy_threshold(en, bc)
             nb_all.append(nb)
+            
+            # Step 11: Compute final noise level
+            npart = compute_npart(nb, qthr_hat_short)
+            npart_all.append(npart)
         
         # Debug info: Show statistics for first subframe
         if DEBUG:
@@ -121,12 +133,14 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
             SNR_0 = SNR_all[0]
             en_0 = en_all[0]
             nb_0 = nb_all[0]
+            npart_0 = npart_all[0]
             print(f"Tonality index (tb): min={tb_0.min():.3f}, max={tb_0.max():.3f}, mean={tb_0.mean():.3f}")
             print(f"Required SNR (dB): min={SNR_0.min():.1f}, max={SNR_0.max():.1f}, mean={SNR_0.mean():.1f}")
             print(f"Normalized energy (en): min={en_0.min():.2e}, max={en_0.max():.2e}")
             print(f"Energy threshold (nb): min={nb_0.min():.2e}, max={nb_0.max():.2e}")
+            print(f"Final noise level (npart): min={npart_0.min():.2e}, max={npart_0.max():.2e}")
         
-        # TODO: Continue with step 11 of psychoacoustic model for short frames
+        # TODO: Continue with step 12 of psychoacoustic model for short frames
         
     else:  # OLS, LSS, LPS (long frames)
         num_bands = len(bval_long)
@@ -173,6 +187,11 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         # Step 10: Compute energy threshold (masking threshold)
         nb = compute_energy_threshold(en, bc)
         
-        # TODO: Continue with step 11 of psychoacoustic model for long frames
+        # Step 11: Compute absolute threshold in quiet and final noise level
+        # N = 2048 for long frames
+        qthr_hat = compute_qthr_hat(qsthr_long, N=2048)
+        npart = compute_npart(nb, qthr_hat)
+        
+        # TODO: Continue with step 12 of psychoacoustic model for long frames
     
     return SMR

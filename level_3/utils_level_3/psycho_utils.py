@@ -89,6 +89,8 @@ def get_spreading_tables():
             - 'whigh_long': Upper frequency indices for long frame bands
             - 'wlow_short': Lower frequency indices for short frame bands
             - 'whigh_short': Upper frequency indices for short frame bands
+            - 'qsthr_long': Absolute threshold in quiet for long frames (dB)
+            - 'qsthr_short': Absolute threshold in quiet for short frames (dB)
     """
     global _spreading_tables_cache
     
@@ -102,6 +104,7 @@ def get_spreading_tables():
         # Column 2: bval (central frequency)
         # Column 3: whigh (upper frequency index)
         # Column 4: width
+        # Column 5: qsthr (absolute threshold in quiet, dB)
         
         bval_long = B219a[:, 2] 
         bval_short = B219b[:, 2]
@@ -110,6 +113,9 @@ def get_spreading_tables():
         whigh_long = B219a[:, 3].astype(int)
         wlow_short = B219b[:, 1].astype(int)
         whigh_short = B219b[:, 3].astype(int)
+        
+        qsthr_long = B219a[:, 5]
+        qsthr_short = B219b[:, 5]
         
         spreading_long = calculate_spreading_function_table(bval_long)
         spreading_short = calculate_spreading_function_table(bval_short)
@@ -123,7 +129,9 @@ def get_spreading_tables():
             'wlow_long': wlow_long,
             'whigh_long': whigh_long,
             'wlow_short': wlow_short,
-            'whigh_short': whigh_short
+            'whigh_short': whigh_short,
+            'qsthr_long': qsthr_long,
+            'qsthr_short': qsthr_short
         }
     
     return _spreading_tables_cache
@@ -311,3 +319,26 @@ def compute_energy_threshold(en, bc):
 
     nb = en * bc
     return nb
+
+
+def compute_qthr_hat(qsthr, N):
+    """
+    Compute the absolute threshold of hearing (threshold in quiet) in energy units.
+    
+    Args:
+        qsthr (array): Absolute threshold in quiet for each band (dB)
+        N (int): FFT length (2048 or 256)
+    """
+    epsilon = np.finfo(float).eps
+    qthr_hat = epsilon * (N / 2) * (10 ** (qsthr / 10))
+    
+    return qthr_hat
+
+
+def compute_npart(nb, qthr_hat):
+    """
+    Combine masking threshold and absolute threshold
+    """
+    npart = np.maximum(nb, qthr_hat)
+    
+    return npart
