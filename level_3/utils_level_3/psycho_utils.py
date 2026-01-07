@@ -291,9 +291,7 @@ def compute_tonality_index(cb):
 
 
 def compute_snr(tb, TMN=18.0, NMT=6.0):
-    """
-    Compute the required Signal-to-Noise Ratio (SNR) for each band based on tonality
-        
+    """        
     Returns:
         array: Required SNR in dB for each band
     """
@@ -301,3 +299,15 @@ def compute_snr(tb, TMN=18.0, NMT=6.0):
     SNR = tb * TMN + (1 - tb) * NMT
     
     return SNR
+
+
+def db_to_energy_ratio(SNR_dB):
+
+    bc = 10 ** (-SNR_dB / 10)
+    return bc
+
+
+def compute_energy_threshold(en, bc):
+
+    nb = en * bc
+    return nb

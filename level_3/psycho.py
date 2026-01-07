@@ -4,7 +4,8 @@ from utils_level_3.psycho_utils import (get_spreading_tables, process_frame_fft,
                                          compute_predictions, compute_predictability,
                                          compute_band_energy_predictability,
                                          apply_spreading_function, compute_tonality_index,
-                                         compute_snr)
+                                         compute_snr, db_to_energy_ratio,
+                                         compute_energy_threshold)
 
 # True to print psychoacoustic model statistics
 DEBUG = False
@@ -83,6 +84,8 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
         en_all = []
         tb_all = []
         SNR_all = []
+        bc_all = []
+        nb_all = []
         for i in range(num_windows):
             r_current = all_subframes[16 + i]['r']
             c = predictabilities[i]
@@ -102,6 +105,14 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
             # Step 8: Compute required SNR based on tonality
             SNR_dB = compute_snr(tb)
             SNR_all.append(SNR_dB)
+            
+            # Step 9: Convert SNR from dB to energy ratio
+            bc = db_to_energy_ratio(SNR_dB)
+            bc_all.append(bc)
+            
+            # Step 10: Compute energy threshold (masking threshold)
+            nb = compute_energy_threshold(en, bc)
+            nb_all.append(nb)
         
         # Debug info: Show statistics for first subframe
         if DEBUG:
@@ -109,11 +120,13 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
             tb_0 = tb_all[0]
             SNR_0 = SNR_all[0]
             en_0 = en_all[0]
+            nb_0 = nb_all[0]
             print(f"Tonality index (tb): min={tb_0.min():.3f}, max={tb_0.max():.3f}, mean={tb_0.mean():.3f}")
             print(f"Required SNR (dB): min={SNR_0.min():.1f}, max={SNR_0.max():.1f}, mean={SNR_0.mean():.1f}")
             print(f"Normalized energy (en): min={en_0.min():.2e}, max={en_0.max():.2e}")
+            print(f"Energy threshold (nb): min={nb_0.min():.2e}, max={nb_0.max():.2e}")
         
-        # TODO: Continue with step 9 of psychoacoustic model for short frames
+        # TODO: Continue with step 11 of psychoacoustic model for short frames
         
     else:  # OLS, LSS, LPS (long frames)
         num_bands = len(bval_long)
@@ -154,6 +167,12 @@ def psycho(frame_T, frame_type, frame_T_prev_1, frame_T_prev_2):
             print(f"  - Tonal bands (tb>{0.7}): {np.sum(tb > 0.7)} / {num_bands}")
             print(f"  - Noisy bands (tb<{0.3}): {np.sum(tb < 0.3)} / {num_bands}")
         
-        # TODO: Continue with step 9 of psychoacoustic model for long frames
+        # Step 9: Convert SNR from dB to energy ratio
+        bc = db_to_energy_ratio(SNR_dB)
+        
+        # Step 10: Compute energy threshold (masking threshold)
+        nb = compute_energy_threshold(en, bc)
+        
+        # TODO: Continue with step 11 of psychoacoustic model for long frames
     
     return SMR
