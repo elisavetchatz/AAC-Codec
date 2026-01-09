@@ -1,13 +1,12 @@
 import numpy as np
 
-from quantizer_utils import (
+from utils_level_3.quantizer_utils import (
     load_scalefactor_bands,
     compute_thresholds,
     initial_alpha_estimate,
     build_alpha_per_coeff,
     quantize,
-    dequantize, 
-    band_error_power
+    _band_error_power
 )
 MAX_SFC_DIFF = 60
 def aac_quantizer(frame_F, frame_type, SMR):

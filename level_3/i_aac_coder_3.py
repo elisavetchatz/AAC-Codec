@@ -79,7 +79,8 @@ def i_aac_coder_3(aac_seq_3, filename_out):
             if frame_type == 'ESH':
                 sfc_chl = sfc_chl_decoded.reshape((42, 8))
             else:
-                sfc_chl = sfc_chl_decoded.reshape((69, 1))
+                # Use actual decoded size instead of hardcoded 69
+                sfc_chl = sfc_chl_decoded.reshape((-1, 1))
 
         sfc_codebook_chr = frame["chr"]["sfc_codebook"]
 
@@ -97,7 +98,7 @@ def i_aac_coder_3(aac_seq_3, filename_out):
             if frame_type == 'ESH':
                 sfc_chr = sfc_chr_decoded.reshape((42, 8))
             else:
-                sfc_chr = sfc_chr_decoded.reshape((69, 1))
+                sfc_chr = sfc_chr_decoded.reshape((-1, 1))
 
         frame_F_chl = i_aac_quantizer(S_chl, sfc_chl, frame["chl"]["G"], frame_type)
         frame_F_chr = i_aac_quantizer(S_chr, sfc_chr, frame["chr"]["G"], frame_type)
