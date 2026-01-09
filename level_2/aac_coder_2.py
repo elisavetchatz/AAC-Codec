@@ -27,7 +27,7 @@ def aac_coder_2(filename_in):
         frames (list): Time-domain frames (K length list of 2048x2 arrays)
     """
     # Get Level 1 encoded sequence (SSC + Filterbank) and time-domain frames
-    aac_seq_1, frames = aac_coder_1(filename_in)
+    aac_seq_1= aac_coder_1(filename_in)
     aac_seq_2 = []
 
     # Process each frame independently
@@ -54,4 +54,4 @@ def aac_coder_2(filename_in):
             }
         })
 
-    return aac_seq_2, frames
+    return aac_seq_2

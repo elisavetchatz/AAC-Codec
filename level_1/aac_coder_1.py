@@ -40,6 +40,7 @@ def aac_coder_1(filename_in):
 
     for i in range(len(frames)):
         print(f"Encoding frame {i + 1} of {len(frames)}")
+
         # Current frame in time domain
         frame_T = frames[i]
 
@@ -62,8 +63,6 @@ def aac_coder_1(filename_in):
         if frame_type == "ESH":
             chl_F = frame_F[:, :, 0]
             chr_F = frame_F[:, :, 1]
-            print("chl_F shape:", chl_F.shape, "chr_F shape:", chr_F.shape)
-
         else:
             chl_F = frame_F[:, 0]
             chr_F = frame_F[:, 1]
@@ -78,4 +77,4 @@ def aac_coder_1(filename_in):
         # Update previous frame type
         prev_frame_type = frame_type
 
-    return aac_seq_1, frames
+    return aac_seq_1

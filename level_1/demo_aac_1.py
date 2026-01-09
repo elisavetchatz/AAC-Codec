@@ -27,7 +27,7 @@ def demo_acc_1(filename_in, filename_out):
         x_original = x_original.astype(np.float32) / 2147483648.0
     
     # Encode
-    aac_seq_1, _ = aac_coder_1(filename_in)
+    aac_seq_1 = aac_coder_1(filename_in)
 
     # Decode
     x_decoded = i_aac_coder_1(aac_seq_1, filename_out)

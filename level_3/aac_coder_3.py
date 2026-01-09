@@ -6,8 +6,9 @@ import scipy.io as sio
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from level_1.aac_coder_1 import aac_coder_1
-from level_2.aac_coder_2 import aac_coder_2
+from level_1.filter_bank import filter_bank
+from level_1.SSC import SSC
+from level_2.tns import tns
 from level_3.psycho import psycho
 from aac_quantizer import aac_quantizer
 from utils_level_3.huff_utils import load_LUT, encode_huff
@@ -46,30 +47,54 @@ def aac_coder_3(filename_in, filename_aac_coded):
                                    - aac_seq_3[i]["chr"]["codebook"]: Huffman codebook used for right channel
     """
     
-    aac_seq_2, frames = aac_coder_2(filename_in)
+    x, fs = sf.read(filename_in)
+    if fs != 48000 or x.ndim != 2 or x.shape[1] != 2:
+        raise ValueError("Input must be 48kHz stereo audio")
 
-    huffLUT = load_LUT()
-    
+    N = 2048
+    hop = N // 2
+    frames = []
+    for start in range(0, x.shape[0] - N + 1, hop):
+        frames.append(x[start:start + N, :])
+
+    prev_frame_type = "OLS"
     aac_seq_3 = []
 
-    # Process each frame independently
-    for i, frame in enumerate(aac_seq_2):
-        print(f"Level 3 encoding frame {i + 1} of {len(aac_seq_2)}")
-        
-        frame_type = frame["frame_type"]
-        win_type = frame["win_type"]
+    huffLUT = load_LUT()
 
-        # Get time-domain frames for psychoacoustic model
+    # Process each frame
+    for i in range(len(frames)):
+        print(f"Encoding frame {i + 1} of {len(frames)}")
+
         frame_T = frames[i]
+        next_frame_T = frames[i + 1] if i + 1 < len(frames) else np.zeros_like(frame_T)
+        frame_type = SSC(frame_T, next_frame_T, prev_frame_type)
+        
+        win_type = "SIN"
+        frame_F = filter_bank(frame_T, frame_type, win_type)
+
+        if frame_type == "ESH":
+            chl_F = frame_F[:, :, 0]
+            chr_F = frame_F[:, :, 1]
+        else:
+            chl_F = frame_F[:, 0]
+            chr_F = frame_F[:, 1]
+
+        chl_F_tns, tns_chl = tns(chl_F, frame_type)
+        chr_F_tns, tns_chr = tns(chr_F, frame_type)
+
+        # psychoacoustic model
         frame_T_prev_1 = frames[i - 1] if i >= 1 else np.zeros_like(frame_T)
         frame_T_prev_2 = frames[i - 2] if i >= 2 else np.zeros_like(frame_T)
 
         SMR_chl = psycho(frame_T[:, 0], frame_type, frame_T_prev_1[:, 0], frame_T_prev_2[:, 0])
         SMR_chr = psycho(frame_T[:, 1], frame_type, frame_T_prev_1[:, 1], frame_T_prev_2[:, 1])
 
-        S_chl, sfc_chl, G_chl = aac_quantizer(frame["chl"]["frame_F"], frame_type, SMR_chl)
-        S_chr, sfc_chr, G_chr = aac_quantizer(frame["chr"]["frame_F"], frame_type, SMR_chr)
+        # Quantization
+        S_chl, sfc_chl, G_chl = aac_quantizer(chl_F_tns, frame_type, SMR_chl)
+        S_chr, sfc_chr, G_chr = aac_quantizer(chr_F_tns, frame_type, SMR_chr)
 
+        # Huffman encoding
         stream_chl, codebook_chl = encode_huff(S_chl.flatten().astype(int), huffLUT)
         stream_chr, codebook_chr = encode_huff(S_chr.flatten().astype(int), huffLUT)
         sfc_stream_chl, sfc_codebook_chl = encode_huff(sfc_chl.flatten().astype(int), huffLUT)
@@ -79,7 +104,7 @@ def aac_coder_3(filename_in, filename_aac_coded):
             "frame_type": frame_type,
             "win_type": win_type,
             "chl": {
-                "tns_coeffs": frame["chl"]["tns_coeffs"],
+                "tns_coeffs": tns_chl,
                 "T": SMR_chl,  # For visualization
                 "G": G_chl,
                 "sfc": sfc_stream_chl,
@@ -88,7 +113,7 @@ def aac_coder_3(filename_in, filename_aac_coded):
                 "codebook": codebook_chl
             },
             "chr": {
-                "tns_coeffs": frame["chr"]["tns_coeffs"],
+                "tns_coeffs": tns_chr,
                 "T": SMR_chr,  # For visualization
                 "G": G_chr,
                 "sfc": sfc_stream_chr,
@@ -97,6 +122,9 @@ def aac_coder_3(filename_in, filename_aac_coded):
                 "codebook": codebook_chr
             }
         })
+
+        # Update previous frame type
+        prev_frame_type = frame_type
 
     # Save encoded sequence to .mat file
     sio.savemat(filename_aac_coded, {'aac_seq_3': aac_seq_3})
