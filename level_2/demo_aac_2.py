@@ -4,7 +4,7 @@ import soundfile as sf
 
 from aac_coder_2 import aac_coder_2
 from i_aac_coder_2 import i_aac_coder_2
-from level_1.utils_level_1.plotting_utils import (
+from utils_level_1.plotting_utils import (
     plot_audio_waveform,
     plot_audio_spectrogram,
     plot_encoding_process,
@@ -33,7 +33,7 @@ def demo_aac_2(filename_in, filename_out):
         x_original = x_original.astype(np.float32) / 2147483648.0
 
     # Encode & Decode
-    aac_seq_2, _ = aac_coder_2(filename_in)
+    aac_seq_2 = aac_coder_2(filename_in)
     x_decoded = i_aac_coder_2(aac_seq_2, filename_out)
 
     # Match signal lengths

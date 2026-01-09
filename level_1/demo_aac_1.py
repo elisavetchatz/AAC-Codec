@@ -1,13 +1,10 @@
 import os
-import sys
 import numpy as np
 import soundfile as sf
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from level_1.aac_coder_1 import aac_coder_1
-from level_1.i_aac_coder_1 import i_aac_coder_1
-from level_1.utils_level_1.plotting_utils import (plot_audio_waveform, plot_audio_spectrogram,
+from aac_coder_1 import aac_coder_1
+from i_aac_coder_1 import i_aac_coder_1
+from utils_level_1.plotting_utils import (plot_audio_waveform, plot_audio_spectrogram,
                                                   plot_encoding_process, plot_snr_analysis)
 
 def demo_acc_1(filename_in, filename_out):
