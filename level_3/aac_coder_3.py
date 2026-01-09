@@ -4,12 +4,10 @@ import numpy as np
 import soundfile as sf
 import scipy.io as sio
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from level_1.filter_bank import filter_bank
-from level_1.SSC import SSC
-from level_2.tns import tns
-from level_3.psycho import psycho
+from filter_bank import filter_bank
+from SSC import SSC
+from tns import tns
+from psycho import psycho
 from aac_quantizer import aac_quantizer
 from utils_level_3.huff_utils import load_LUT, encode_huff
 

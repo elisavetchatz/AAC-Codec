@@ -3,12 +3,10 @@ import sys
 import numpy as np
 import soundfile as sf
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from level_3.utils_level_3.huff_utils import load_LUT, decode_huff
-from level_3.i_aac_quantizer import i_aac_quantizer
-from level_2.i_tns import i_tns
-from level_1.i_filter_bank import i_filter_bank
+from utils_level_3.huff_utils import load_LUT, decode_huff
+from i_aac_quantizer import i_aac_quantizer
+from i_tns import i_tns
+from i_filter_bank import i_filter_bank
 
 
 def i_aac_coder_3(aac_seq_3, filename_out):

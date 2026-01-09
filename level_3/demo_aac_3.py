@@ -4,10 +4,8 @@ import numpy as np
 import soundfile as sf
 import scipy.io as sio
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from level_3.aac_coder_3 import aac_coder_3
-from level_3.i_aac_coder_3 import i_aac_coder_3
+from aac_coder_3 import aac_coder_3
+from i_aac_coder_3 import i_aac_coder_3
 
 
 def demo_aac_3(filename_in, filename_out, filename_aac_coded):
@@ -77,7 +75,7 @@ def demo_aac_3(filename_in, filename_out, filename_aac_coded):
 
 
 if __name__ == "__main__":
-    # Default test
+
     current_dir = os.path.dirname(os.path.abspath(__file__))
     root_dir = os.path.dirname(current_dir)
     
