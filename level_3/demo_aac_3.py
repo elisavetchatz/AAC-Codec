@@ -40,18 +40,43 @@ def demo_aac_3(filename_in, filename_out, filename_aac_coded):
     else:
         SNR = float('inf')
     
-    # Calculate bitrate
-    total_bits = 0
-    for frame in aac_seq_3:
-
-        total_bits += len(frame["chl"]["stream"])
-        total_bits += len(frame["chl"]["sfc"])
-        
-        total_bits += len(frame["chr"]["stream"])
-        total_bits += len(frame["chr"]["sfc"])
-        
-        total_bits += 64
+    # Calculate bitrate and analyze sparsity
+    total_stream_bits = 0
+    total_sfc_bits = 0
+    total_overhead_bits = 0
+    total_nonzero_coeffs = 0
+    total_coeffs = 0
     
+    for frame in aac_seq_3:
+        # Handle both string and array formats for streams
+        chl_stream = frame["chl"]["stream"]
+        chl_sfc = frame["chl"]["sfc"]
+        chr_stream = frame["chr"]["stream"]
+        chr_sfc = frame["chr"]["sfc"]
+        
+        # Convert to string if necessary (from .mat file loading)
+        if isinstance(chl_stream, np.ndarray):
+            chl_stream = ''.join(chl_stream.flatten().astype(str))
+        if isinstance(chl_sfc, np.ndarray):
+            chl_sfc = ''.join(chl_sfc.flatten().astype(str))
+        if isinstance(chr_stream, np.ndarray):
+            chr_stream = ''.join(chr_stream.flatten().astype(str))
+        if isinstance(chr_sfc, np.ndarray):
+            chr_sfc = ''.join(chr_sfc.flatten().astype(str))
+        
+        total_stream_bits += len(chl_stream) + len(chr_stream)
+        total_sfc_bits += len(chl_sfc) + len(chr_sfc)
+        total_overhead_bits += 64  # Frame header, etc.
+        
+        # Count non-zero coefficients
+        if "chl" in frame and "nonzero_coeffs" in frame["chl"]:
+            total_nonzero_coeffs += frame["chl"]["nonzero_coeffs"]
+        if "chr" in frame and "nonzero_coeffs" in frame["chr"]:
+            total_nonzero_coeffs += frame["chr"]["nonzero_coeffs"]
+        if "total_coeffs" in frame:
+            total_coeffs += frame["total_coeffs"] * 2  # *2 for both channels
+    
+    total_bits = total_stream_bits + total_sfc_bits + total_overhead_bits
     duration = len(x_original) / fs
     bitrate = total_bits / duration
     
@@ -68,6 +93,16 @@ def demo_aac_3(filename_in, filename_out, filename_aac_coded):
     print(f"Compression ratio: {compression:.2f}x")
     print(f"Number of frames: {len(aac_seq_3)}")
     print(f"Duration: {duration:.2f} seconds")
+    print("=" * 70)
+    print(f"Bitrate breakdown:")
+    print(f"  Stream bits: {total_stream_bits:,} ({total_stream_bits/total_bits*100:.1f}%)")
+    print(f"  SFC bits: {total_sfc_bits:,} ({total_sfc_bits/total_bits*100:.1f}%)")
+    print(f"  Overhead bits: {total_overhead_bits:,} ({total_overhead_bits/total_bits*100:.1f}%)")
+    print("=" * 70)
+    if total_coeffs > 0:
+        print(f"Coefficient sparsity:")
+        print(f"  Non-zero coefficients: {total_nonzero_coeffs:,} / {total_coeffs:,} ({total_nonzero_coeffs/total_coeffs*100:.1f}%)")
+        print(f"  Zero coefficients: {total_coeffs - total_nonzero_coeffs:,} ({(total_coeffs - total_nonzero_coeffs)/total_coeffs*100:.1f}%)")
     print("=" * 70)
     
     return SNR, bitrate, compression

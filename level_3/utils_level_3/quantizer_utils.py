@@ -1,5 +1,4 @@
 import numpy as np
-import os
 from scipy.io import loadmat
 
 MAGIC_NUMBER = 0.4054
@@ -12,18 +11,15 @@ def load_scalefactor_bands(frame_type):
     According to the assignment, scalefactor bands
     are identical to psychoacoustic bands.
     """
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    root_dir = os.path.dirname(os.path.dirname(current_dir))
-    mat_file = os.path.join(root_dir, 'TableB219.mat')
-    tables = loadmat(mat_file)
+    tables = loadmat("TableB219.mat")
 
     if frame_type == "ESH":
         band_table = tables["B219b"]   # short windows (42 bands)
     else:
         band_table = tables["B219a"]   # long windows (69 bands)
 
-    wlow = band_table[:, 1].astype(int)
-    whigh = band_table[:, 2].astype(int)
+    wlow = band_table[:, 2].astype(int)
+    whigh = band_table[:, 3].astype(int)
 
     return wlow, whigh
 
@@ -115,7 +111,7 @@ def dequantize(S, alpha_k):
     alpha_k = np.asarray(alpha_k, dtype=np.float64)
     return np.sign(S) * (np.abs(S) ** (4 / 3)) * (2 ** (alpha_k / 4))
 
-def _band_error_power(Xb, alpha_b):
+def band_error_power(Xb, alpha_b):
     """
     Quantization error power for one scalefactor band.
     """
@@ -123,3 +119,11 @@ def _band_error_power(Xb, alpha_b):
     Sb = quantize(Xb, alpha_k)
     Xhat = dequantize(Sb, alpha_k)
     return np.sum((Xb - Xhat) ** 2)
+
+
+def _band_error_power(Xb, alpha_b):
+    """
+    Quantization error power for one scalefactor band.
+    Alias for band_error_power to maintain compatibility.
+    """
+    return band_error_power(Xb, alpha_b)

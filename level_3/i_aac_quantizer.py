@@ -39,7 +39,12 @@ def i_aac_quantizer(S, sfc, G, frame_type):
 
             # 1. Reconstruct alpha(b) from DPCM scalefactors
             # Limit to NB bands in case Huffman decoding returns extra values
-            alpha_b = np.cumsum(sfc[:, sf])[:NB]
+            alpha_b = np.zeros(NB)
+            alpha_b[0] = G[0, sf]  # Use Global Gain
+            # Reconstruct remaining alphas using DPCM differences
+            for b in range(1, NB):
+                if b < sfc.shape[0]:  # Safety check
+                    alpha_b[b] = alpha_b[b-1] + sfc[b, sf]
 
             # 2. Expand alpha(b) to alpha(k)
             alpha_k = build_alpha_per_coeff(alpha_b, wlow, whigh, 128)
@@ -56,7 +61,13 @@ def i_aac_quantizer(S, sfc, G, frame_type):
     else:
         # 1. Reconstruct alpha(b) from DPCM scalefactors
         # Limit to NB bands in case Huffman decoding returns extra values
-        alpha_b = np.cumsum(sfc.flatten())[:NB]
+        sfc_flat = sfc.flatten()
+        alpha_b = np.zeros(NB)
+        alpha_b[0] = G  # Use Global Gain
+        # Reconstruct remaining alphas using DPCM differences
+        for b in range(1, NB):
+            if b < len(sfc_flat):  # Safety check
+                alpha_b[b] = alpha_b[b-1] + sfc_flat[b]
         
         # 2. Expand alpha(b) to alpha(k)
         alpha_k = build_alpha_per_coeff(alpha_b, wlow, whigh, 1024)

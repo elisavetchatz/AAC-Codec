@@ -92,6 +92,21 @@ def aac_coder_3(filename_in, filename_aac_coded):
         S_chl, sfc_chl, G_chl = aac_quantizer(chl_F_tns, frame_type, SMR_chl)
         S_chr, sfc_chr, G_chr = aac_quantizer(chr_F_tns, frame_type, SMR_chr)
 
+        # Calculate sparsity metrics
+        nonzero_chl = int(np.count_nonzero(S_chl))
+        nonzero_chr = int(np.count_nonzero(S_chr))
+        total_coeffs_frame = int(S_chl.size)
+        
+        # Coefficient magnitude statistics
+        max_coeff_chl = int(np.max(np.abs(S_chl)))
+        max_coeff_chr = int(np.max(np.abs(S_chr)))
+        
+        # Print first frame statistics
+        if i == 0:
+            print(f"\nFrame {i} - Coefficient Statistics:")
+            print(f"  CHL - Non-zero: {nonzero_chl}/{total_coeffs_frame} ({100*nonzero_chl/total_coeffs_frame:.1f}%), Max value: {max_coeff_chl}")
+            print(f"  CHR - Non-zero: {nonzero_chr}/{total_coeffs_frame} ({100*nonzero_chr/total_coeffs_frame:.1f}%), Max value: {max_coeff_chr}")
+        
         # Huffman encoding
         stream_chl, codebook_chl = encode_huff(S_chl.flatten().astype(int), huffLUT)
         stream_chr, codebook_chr = encode_huff(S_chr.flatten().astype(int), huffLUT)
@@ -108,7 +123,8 @@ def aac_coder_3(filename_in, filename_aac_coded):
                 "sfc": sfc_stream_chl,
                 "sfc_codebook": sfc_codebook_chl,
                 "stream": stream_chl,
-                "codebook": codebook_chl
+                "codebook": codebook_chl,
+                "nonzero_coeffs": nonzero_chl
             },
             "chr": {
                 "tns_coeffs": tns_chr,
@@ -117,8 +133,10 @@ def aac_coder_3(filename_in, filename_aac_coded):
                 "sfc": sfc_stream_chr,
                 "sfc_codebook": sfc_codebook_chr,
                 "stream": stream_chr,
-                "codebook": codebook_chr
-            }
+                "codebook": codebook_chr,
+                "nonzero_coeffs": nonzero_chr
+            },
+            "total_coeffs": total_coeffs_frame
         })
 
         # Update previous frame type
