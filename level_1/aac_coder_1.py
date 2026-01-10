@@ -1,8 +1,8 @@
 import numpy as np
 import soundfile as sf
 
-from level_1.filter_bank import filter_bank
-from level_1.SSC import SSC
+from filter_bank import filter_bank
+from SSC import SSC
 
 
 def aac_coder_1(filename_in):
@@ -21,6 +21,7 @@ def aac_coder_1(filename_in):
                                     - aac_seq_1[i]['chr']["frame_F"]: MDCT coefficients of right channel 
                                           * (128, 8) for EIGHT SHORT SEQUENCE - each column is one subframe
                                           * (1024, 1) for other frame types
+        frames (list): Time-domain frames (K length list of 2048x2 arrays)
     """
     x, fs = sf.read(filename_in)
     if fs != 48000 or x.ndim != 2 or x.shape[1] != 2:
@@ -39,6 +40,7 @@ def aac_coder_1(filename_in):
 
     for i in range(len(frames)):
         print(f"Encoding frame {i + 1} of {len(frames)}")
+
         # Current frame in time domain
         frame_T = frames[i]
 
@@ -61,8 +63,6 @@ def aac_coder_1(filename_in):
         if frame_type == "ESH":
             chl_F = frame_F[:, :, 0]
             chr_F = frame_F[:, :, 1]
-            print("chl_F shape:", chl_F.shape, "chr_F shape:", chr_F.shape)
-
         else:
             chl_F = frame_F[:, 0]
             chr_F = frame_F[:, 1]

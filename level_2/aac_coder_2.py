@@ -1,10 +1,11 @@
 import os
 import sys
+import numpy as np
+import soundfile as sf
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from level_2.tns import tns
-from level_1.aac_coder_1 import aac_coder_1
+from filter_bank import filter_bank
+from SSC import SSC
+from tns import tns
 
 def aac_coder_2(filename_in):
     """
@@ -25,20 +26,46 @@ def aac_coder_2(filename_in):
                                    - aac_seq_2[i]["chl"]["frame_F"]: MDCT coefficients for left channel after TNS
                                    - aac_seq_2[i]["chr"]["frame_F"]: MDCT coefficients for right channel after TNS
     """
-    # Get Level 1 encoded sequence (SSC + Filterbank)
-    aac_seq_1 = aac_coder_1(filename_in)
+    # Load audio file
+    x, fs = sf.read(filename_in)
+    if fs != 48000 or x.ndim != 2 or x.shape[1] != 2:
+        raise ValueError("Input must be 48kHz stereo audio")
+
+    N = 2048
+    hop = N // 2
+
+    # Split signal into overlapping frames (50% overlap)
+    frames = []
+    for start in range(0, x.shape[0] - N + 1, hop):
+        frames.append(x[start:start + N, :])
+
     aac_seq_2 = []
+    prev_frame_type = "OLS"
 
-    # Process each frame independently
-    for frame in aac_seq_1:
-        frame_type = frame["frame_type"]
-        win_type = frame["win_type"]
+    # Process each frame
+    for i in range(len(frames)):
+        print(f"Encoding frame {i + 1} of {len(frames)}")
 
-        # Apply TNS independently to left and right channels
-        chl_out, tns_chl = tns(frame["chl"]["frame_F"], frame_type)
-        chr_out, tns_chr = tns(frame["chr"]["frame_F"], frame_type)
+        # Current frame in time domain
+        frame_T = frames[i]
 
-        # Store Level 2 encoded frame
+        next_frame_T = frames[i + 1] if i + 1 < len(frames) else np.zeros_like(frame_T)
+
+        frame_type = SSC(frame_T, next_frame_T, prev_frame_type)
+        win_type = "SIN"
+
+        frame_F = filter_bank(frame_T, frame_type, win_type)
+
+        if frame_type == "ESH":
+            chl_F = frame_F[:, :, 0]
+            chr_F = frame_F[:, :, 1]
+        else:
+            chl_F = frame_F[:, 0]
+            chr_F = frame_F[:, 1]
+
+        chl_out, tns_chl = tns(chl_F, frame_type)
+        chr_out, tns_chr = tns(chr_F, frame_type)
+
         aac_seq_2.append({
             "frame_type": frame_type,
             "win_type": win_type,
@@ -51,5 +78,8 @@ def aac_coder_2(filename_in):
                 "tns_coeffs": tns_chr
             }
         })
+
+        # Update previous frame type
+        prev_frame_type = frame_type
 
     return aac_seq_2

@@ -1,0 +1,387 @@
+import numpy as np
+import os
+import sys
+
+# Add parent directories to path to import from level_2
+current_dir = os.path.dirname(os.path.abspath(__file__))
+level_3_dir = os.path.dirname(current_dir)
+root_dir = os.path.dirname(level_3_dir)
+sys.path.insert(0, root_dir)
+
+from level_2.utils_level_2.tns_utils import load_band_tables
+
+
+# Cache for pre-calculated spreading function tables
+_spreading_tables_cache = None
+
+def load_bark_tables():
+    """
+    Uses the existing function from tns_utils
+    """
+    return load_band_tables()
+
+
+def spreading_function(i, j, bval):
+    """
+    Calculate the spreading function value between two bands.
+    
+    Args:
+        i (int): Index of the masking band (source)
+        j (int): Index of the masked band (target)
+        bval (array): Array of central frequencies (bark values) for each band
+        
+    Returns:
+        float: Spreading function value
+    """
+    # tmpx
+    if i >= j:
+        tmpx = 3.0 * (bval[j] - bval[i])
+    else:
+        tmpx = 1.5 * (bval[j] - bval[i])
+    
+    # tmpz
+    tmpz = 8 * min((tmpx - 0.5)**2 - 2*(tmpx - 0.5), 0)
+    
+    # tmpy
+    tmpy = (15.811389 + 7.5*(tmpx + 0.474) - 
+            17.5*np.sqrt(1.0 + (tmpx + 0.474)**2))
+    
+    if tmpy < -100:
+        x = 0
+    else:
+        x = 10**((tmpz + tmpy) / 10)
+    
+    return x
+
+
+def calculate_spreading_function_table(bval):
+    """
+    Pre-calculate the spreading function for all band combinations.
+    
+    Args:
+        bval (array): Array of central frequencies (bark values) for each band
+        
+    Returns:
+        np.ndarray: 2D array where element [i, j] contains the spreading
+                    function value from band i to band j
+    """
+    num_bands = len(bval)
+    spread_table = np.zeros((num_bands, num_bands))
+    
+    for i in range(num_bands):
+        for j in range(num_bands):
+            spread_table[i, j] = spreading_function(i, j, bval)
+    
+    return spread_table
+
+
+def get_spreading_tables():
+    """
+    Get pre-calculated spreading function tables for long and short frames.
+
+    Returns:
+        dict:
+            - 'spreading_long': Spreading function table for long frames (69x69)
+            - 'spreading_short': Spreading function table for short frames (42x42)
+            - 'bval_long': Central frequencies for long frames
+            - 'bval_short': Central frequencies for short frames
+            - 'wlow_long': Lower frequency indices for long frame bands
+            - 'whigh_long': Upper frequency indices for long frame bands
+            - 'wlow_short': Lower frequency indices for short frame bands
+            - 'whigh_short': Upper frequency indices for short frame bands
+            - 'qsthr_long': Absolute threshold in quiet for long frames (dB)
+            - 'qsthr_short': Absolute threshold in quiet for short frames (dB)
+    """
+    global _spreading_tables_cache
+    
+    if _spreading_tables_cache is None:
+
+        B219a, B219b = load_bark_tables()
+        
+        # Extract columns from tables
+        # Column 0: band index
+        # Column 1: wlow (lower frequency index)
+        # Column 2: whigh (upper frequency index)
+        # Column 3: width (number of coefficients)
+        # Column 4: bval (central Bark frequency)
+        # Column 5: qsthr (absolute threshold in quiet, dB)
+        
+        bval_long = B219a[:, 4] 
+        bval_short = B219b[:, 4]
+        
+        wlow_long = B219a[:, 1].astype(int)
+        whigh_long = B219a[:, 2].astype(int)
+        wlow_short = B219b[:, 1].astype(int)
+        whigh_short = B219b[:, 2].astype(int)
+        
+        qsthr_long = B219a[:, 5]
+        qsthr_short = B219b[:, 5]
+        
+        spreading_long = calculate_spreading_function_table(bval_long)
+        spreading_short = calculate_spreading_function_table(bval_short)
+        
+        # Cache the results
+        _spreading_tables_cache = {
+            'spreading_long': spreading_long,
+            'spreading_short': spreading_short,
+            'bval_long': bval_long,
+            'bval_short': bval_short,
+            'wlow_long': wlow_long,
+            'whigh_long': whigh_long,
+            'wlow_short': wlow_short,
+            'whigh_short': whigh_short,
+            'qsthr_long': qsthr_long,
+            'qsthr_short': qsthr_short
+        }
+    
+    return _spreading_tables_cache
+
+
+def apply_hann_window(signal):
+   
+    N = len(signal)
+    n = np.arange(N)
+
+    hann_window = 0.5 - 0.5 * np.cos(np.pi * (n + 0.5) / N)
+
+    return signal * hann_window
+
+
+def compute_fft_analysis(signal):
+    """
+    Compute FFT and extract magnitude and phase.
+    
+    For long frames (2048 samples): returns coefficients 0-1023
+    For short frames (256 samples): returns coefficients 0-127
+    
+    Args:
+        signal (array): Input signal already windowed
+        
+    Returns:
+        (r, f) where:
+            - r: magnitude for each frequency bin
+            - f: phase for each frequency bin (in radians)
+    """
+
+    # FFT
+    fft_result = np.fft.fft(signal)
+    
+    # For 2048: keep 0-1023, for 256: keep 0-127
+    num_coeffs = len(signal) // 2
+    fft_result = fft_result[:num_coeffs]
+    
+    r = np.abs(fft_result)
+    f = np.angle(fft_result)
+    
+    return r, f
+
+
+def process_frame_fft(frame):
+    """
+    Process a single frame/subframe: apply Hann window and compute FFT
+    """
+
+    windowed = apply_hann_window(frame)
+    r, f = compute_fft_analysis(windowed)
+    
+    return r, f
+
+
+def compute_predictions(r_prev_2, f_prev_2, r_prev_1, f_prev_1):
+    """
+    Compute predictions for magnitude and phase using linear extrapolation
+        
+    Returns:
+        tuple: (rpred, fpred) predicted magnitude and phase arrays
+    """
+    rpred = 2 * r_prev_1 - r_prev_2
+    fpred = 2 * f_prev_1 - f_prev_2
+    
+    return rpred, fpred
+
+
+def compute_predictability(r, f, rpred, fpred):
+    """
+    Returns:
+        array: Predictability measure c for each frequency bin
+    """
+
+    # polar to Cartesian
+    real_current = r * np.cos(f)
+    imag_current = r * np.sin(f)
+    
+    real_pred = rpred * np.cos(fpred)
+    imag_pred = rpred * np.sin(fpred)
+    
+    numerator = (real_current - real_pred)**2 + (imag_current - imag_pred)**2
+    
+    # Calculate the denominator with small epsilon to avoid division by zero
+    denominator = r**2 + rpred**2
+    epsilon = 1e-10
+    denominator = np.maximum(denominator, epsilon)
+    
+    # predictability measure
+    c = numerator / denominator
+    
+    return c
+
+
+def compute_band_energy_predictability(r, c, wlow, whigh):
+    """
+    Compute energy and weighted predictability for each critical band
+        
+    Returns:
+        tuple: (e_bands, c_bands)
+    """
+
+    num_bands = len(wlow)
+    e_bands = np.zeros(num_bands)
+    c_bands = np.zeros(num_bands)
+    
+    for b in range(num_bands):
+
+        w_start = wlow[b]
+        w_end = whigh[b] + 1
+        
+        r_band = r[w_start:w_end]
+        c_band = c[w_start:w_end]
+        
+        r_squared = r_band ** 2
+        
+        e_bands[b] = np.sum(r_squared)
+        
+        # Compute weighted predictability
+        c_bands[b] = np.sum(c_band * r_squared)
+    
+    return e_bands, c_bands
+
+
+def apply_spreading_function(e_bands, c_bands, spreading_table):
+    """    
+    Returns:
+        tuple: (cb, en)
+            - cb: Normalized predictability for each band
+            - en: Normalized energy for each band
+    """
+    ecb = e_bands @ spreading_table
+    
+    ct = c_bands @ spreading_table 
+    
+    # Normalize predictability: cb(b) = ct(b) / ecb(b)
+    epsilon = 1e-10
+    cb = ct / np.maximum(ecb, epsilon)
+    
+    # Normalize energy
+    spreading_sum = np.sum(spreading_table, axis=0)
+    en = ecb / np.maximum(spreading_sum, epsilon)
+    
+    return cb, en
+
+
+def compute_tonality_index(cb):
+    """    
+    Args:
+        cb (array): Normalized predictability for each band
+        
+    Returns:
+        array: Tonality index for each band, values in (0, 1)
+    """
+    # epsilon to avoid log(0)
+    epsilon = 1e-10
+    cb_safe = np.maximum(cb, epsilon)
+    
+    # tonality index
+    tb = -0.299 - 0.43 * np.log(cb_safe)
+    
+    tb = np.clip(tb, 0.0, 1.0)
+    
+    return tb
+
+
+def compute_snr(tb, TMN=18.0, NMT=6.0):
+    """        
+    Returns:
+        array: Required SNR in dB for each band
+    """
+
+    SNR = tb * TMN + (1 - tb) * NMT
+    
+    return SNR
+
+
+def db_to_energy_ratio(SNR_dB):
+
+    bc = 10 ** (-SNR_dB / 10)
+    return bc
+
+
+def compute_energy_threshold(en, bc):
+
+    nb = en * bc
+    return nb
+
+
+def compute_qthr_hat(qsthr, N):
+    """
+    Compute the absolute threshold of hearing (threshold in quiet) in energy units.
+    
+    Args:
+        qsthr (array): Absolute threshold in quiet for each band (dB)
+        N (int): FFT length (2048 or 256)
+    """
+    epsilon = np.finfo(float).eps
+    qthr_hat = epsilon * (N / 2) * (10 ** (qsthr / 10))
+    
+    return qthr_hat
+
+
+def compute_npart(nb, qthr_hat):
+    """
+    Combine masking threshold and absolute threshold
+    """
+    npart = np.maximum(nb, qthr_hat)
+    
+    return npart
+
+
+def compute_smr(e_bands, npart):
+
+    epsilon = 1e-10
+    SMR = e_bands / np.maximum(npart, epsilon)
+    
+    return SMR
+
+
+def compute_mdct_energy(MDCT_coeffs, wlow, whigh):
+    """
+    Used by the quantizer to compute the energy per band,
+    which is then combined with SMR to get the psychoacoustic threshold T(b).
+    
+    Args:
+        MDCT_coeffs (array): MDCT coefficients X(k)
+        wlow (array): Lower frequency index for each band
+        whigh (array): Upper frequency index for each band
+        
+    Returns:
+        array: Energy P(b) for each scalefactor band
+    """
+
+    num_bands = len(wlow)
+    P = np.zeros(num_bands)
+    
+    for b in range(num_bands):
+        w_start = wlow[b]
+        w_end = whigh[b] + 1  # +1 because Python slicing is exclusive at the end
+        
+        X_band = MDCT_coeffs[w_start:w_end]
+        P[b] = np.sum(X_band ** 2)
+    
+    return P
+
+
+def compute_psycho_threshold(P, SMR):
+
+    epsilon = 1e-10
+    T = P / np.maximum(SMR, epsilon)
+    
+    return T

@@ -10,23 +10,19 @@ def _get_imdct_matrix(N):
     with n0 = (N/2 + 1)/2
     """
     n0 = (N / 2 + 1) / 2.0
-    n = np.arange(N)[:, np.newaxis]        # (N, 1)
-    k = np.arange(N // 2)[np.newaxis, :]   # (1, N//2)
+    n = np.arange(N)[:, np.newaxis]
+    k = np.arange(N // 2)[np.newaxis, :]
     C = (2.0 / N) * np.cos(2.0 * np.pi / N * (n + n0) * (k + 0.5))
+    
     return C
 
 def imdct(X):
     """
-    Inverse Modified Discrete Cosine Transform (IMDCT).
-    
-    Args:
-        X (array): MDCT coefficients of length N/2
-        
-    Returns:
-        x (array): Reconstructed signal of length N
+    Inverse Modified Discrete Cosine Transform
     """
-    X = np.asarray(X).flatten()  # Ensure 1-D input
-    N = len(X) * 2  # Original signal length
+    X = np.asarray(X).flatten()
+    N = len(X) * 2
     C = _get_imdct_matrix(N)
-    x = C @ X  # Matrix-vector multiplication: (N, N//2) @ (N//2,) = (N,)
-    return x.flatten()  # Ensure 1-D output
+    x = C @ X
+
+    return x.flatten()

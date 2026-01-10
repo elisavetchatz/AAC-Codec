@@ -4,7 +4,7 @@ import soundfile as sf
 
 from aac_coder_2 import aac_coder_2
 from i_aac_coder_2 import i_aac_coder_2
-from level_1.utils_level_1.plotting_utils import (
+from utils_level_1.plotting_utils import (
     plot_audio_waveform,
     plot_audio_spectrogram,
     plot_encoding_process,

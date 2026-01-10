@@ -183,7 +183,6 @@ def quantize_tns_coeffs(a, step=0.1):
     """
 
     a_quant = np.round(a / step) * step
-    # Clip to ±0.75 for 4-bit quantizer with step=0.1
     a_quant = np.clip(a_quant, -0.75, 0.75)
     
     return a_quant

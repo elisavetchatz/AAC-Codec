@@ -1,5 +1,8 @@
+import numpy as np
+import soundfile as sf
+
+from i_filter_bank import i_filter_bank
 from i_tns import i_tns
-from level_1.i_aac_coder_1 import i_aac_coder_1
 
 def i_aac_coder_2(aac_seq_2, filename_out):
     """
@@ -21,13 +24,18 @@ def i_aac_coder_2(aac_seq_2, filename_out):
     Returns:
         x (array): Decoded sample sequence
     """
-    aac_seq_1 = []
-    # Remove TNS by applying inverse TNS on each frame
-    for frame in aac_seq_2:
+    # Analysis/synthesis parameters
+    N = 2048
+    hop = N // 2
+  
+    num_frames = len(aac_seq_2)
+    x = np.zeros((num_frames * hop + hop, 2))
+
+    # Process each frame
+    for i, frame in enumerate(aac_seq_2):
         frame_type = frame["frame_type"]
         win_type = frame["win_type"]
 
-        # Inverse TNS per channel
         frame_F_L = i_tns(
             frame["chl"]["frame_F"],
             frame_type,
@@ -40,14 +48,17 @@ def i_aac_coder_2(aac_seq_2, filename_out):
             frame["chr"]["tns_coeffs"]
         )
 
-        # Reconstruct compatible structure
-        aac_seq_1.append({
-            "frame_type": frame_type,
-            "win_type": win_type,
-            "chl": {"frame_F": frame_F_L},
-            "chr": {"frame_F": frame_F_R}
-        })
+        frame_T_L = i_filter_bank(frame_F_L, frame_type, win_type)
+        frame_T_R = i_filter_bank(frame_F_R, frame_type, win_type)
 
-    # Delegate reconstruction to Level 1 inverse coder
-    x = i_aac_coder_1(aac_seq_1, filename_out)
+        # Combine channels into a stereo frame
+        frame_T = np.stack([frame_T_L, frame_T_R], axis=1)
+
+        # Overlap-add reconstruction
+        start = i * hop
+        x[start:start+N, :] += frame_T
+
+    # Save to output file
+    sf.write(filename_out, x, 48000)
+
     return x
