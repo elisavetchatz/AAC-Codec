@@ -216,7 +216,7 @@ def compute_predictability(r, f, rpred, fpred):
     numerator = (real_current - real_pred)**2 + (imag_current - imag_pred)**2
     
     # Calculate the denominator with small epsilon to avoid division by zero
-    denominator = r + np.abs(rpred)
+    denominator = r**2 + rpred**2
     epsilon = 1e-10
     denominator = np.maximum(denominator, epsilon)
     
