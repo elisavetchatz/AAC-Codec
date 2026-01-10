@@ -4,7 +4,7 @@ import scipy.signal as signal
 from matplotlib.gridspec import GridSpec
 
 
-def plot_audio_waveform(x_original, x_decoded, fs, save_path=None, error_ylim=0.01):
+def plot_audio_waveform(x_original, x_decoded, fs, save_path=None, error_ylim=0.1):
     """
     Plot the original vs decoded audio waveform.
     
@@ -163,6 +163,14 @@ def plot_snr_analysis(x_original, x_decoded, fs, save_path=None, frame_size=2048
     x_orig = x_orig[:min_len]
     x_dec = x_dec[:min_len]
     
+    # Calculate global SNR
+    global_signal_power = np.sum(x_orig ** 2)
+    global_noise_power = np.sum((x_orig - x_dec) ** 2)
+    if global_noise_power > 0:
+        global_snr = 10 * np.log10(global_signal_power / global_noise_power)
+    else:
+        global_snr = float('inf')
+    
     # Calculate frame-by-frame SNR
     num_frames = min_len // frame_size
     snr_values = []
@@ -191,7 +199,8 @@ def plot_snr_analysis(x_original, x_decoded, fs, save_path=None, frame_size=2048
     axes[0].set_ylabel('SNR (dB)')
     axes[0].set_title(f'Frame-by-Frame SNR (Frame Size: {frame_size} samples)')
     axes[0].grid(True, alpha=0.3)
-    axes[0].axhline(y=np.mean(snr_values), color='r', linestyle='--', label=f'Mean SNR: {np.mean(snr_values):.2f} dB')
+    axes[0].axhline(y=np.mean(snr_values), color='r', linestyle='--', label=f'Mean Frame SNR: {np.mean(snr_values):.2f} dB')
+    axes[0].axhline(y=global_snr, color='orange', linestyle=':', linewidth=2, label=f'Global SNR: {global_snr:.2f} dB')
     axes[0].legend()
     
     # SNR histogram
@@ -201,6 +210,7 @@ def plot_snr_analysis(x_original, x_decoded, fs, save_path=None, frame_size=2048
     axes[1].set_title('SNR Distribution')
     axes[1].axvline(x=np.mean(snr_values), color='r', linestyle='--', linewidth=2, label=f'Mean: {np.mean(snr_values):.2f} dB')
     axes[1].axvline(x=np.median(snr_values), color='g', linestyle='--', linewidth=2, label=f'Median: {np.median(snr_values):.2f} dB')
+    axes[1].axvline(x=global_snr, color='orange', linestyle=':', linewidth=2, label=f'Global: {global_snr:.2f} dB')
     axes[1].legend()
     axes[1].grid(True, alpha=0.3, axis='y')
     
@@ -434,19 +444,35 @@ def plot_compression_analysis(aac_seq, fs=48000, save_path=None):
     fig, axes = plt.subplots(2, 2, figsize=(16, 10))
     fig.suptitle('Compression and Bit Allocation Analysis', fontsize=14, fontweight='bold')
     
-    # Calculate bits per frame
+    # Calculate bits per frame (same way as demo_aac_3.py)
     bits_per_frame = []
     mdct_bits = []
     sfc_bits = []
     
     for frame in aac_seq:
-        total = len(frame['chl']['stream']) + len(frame['chr']['stream'])
-        total += len(frame['chl']['sfc']) + len(frame['chr']['sfc'])
-        total += 64  # Overhead
+        # Handle both string and array formats for streams (same as demo_aac_3.py)
+        chl_stream = frame["chl"]["stream"]
+        chl_sfc = frame["chl"]["sfc"]
+        chr_stream = frame["chr"]["stream"]
+        chr_sfc = frame["chr"]["sfc"]
         
-        bits_per_frame.append(total)
-        mdct_bits.append(len(frame['chl']['stream']) + len(frame['chr']['stream']))
-        sfc_bits.append(len(frame['chl']['sfc']) + len(frame['chr']['sfc']))
+        # Convert to string if necessary
+        if isinstance(chl_stream, np.ndarray):
+            chl_stream = ''.join(chl_stream.flatten().astype(str))
+        if isinstance(chl_sfc, np.ndarray):
+            chl_sfc = ''.join(chl_sfc.flatten().astype(str))
+        if isinstance(chr_stream, np.ndarray):
+            chr_stream = ''.join(chr_stream.flatten().astype(str))
+        if isinstance(chr_sfc, np.ndarray):
+            chr_sfc = ''.join(chr_sfc.flatten().astype(str))
+        
+        stream_bits = len(chl_stream) + len(chr_stream)
+        sf_bits = len(chl_sfc) + len(chr_sfc)
+        overhead = 64
+        
+        bits_per_frame.append(stream_bits + sf_bits + overhead)
+        mdct_bits.append(stream_bits)
+        sfc_bits.append(sf_bits)
     
     frame_indices = np.arange(len(aac_seq))
     
@@ -476,14 +502,15 @@ def plot_compression_analysis(aac_seq, fs=48000, save_path=None):
                     verticalalignment='top', bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
     
     # Plot 3: Bit distribution pie chart
-    total_mdct = sum(mdct_bits)
-    total_sfc = sum(sfc_bits)
-    total_overhead = len(aac_seq) * 64
+    total_stream_bits = sum(mdct_bits)
+    total_sfc_bits = sum(sfc_bits)
+    total_overhead_bits = len(aac_seq) * 64
+    total_bits = total_stream_bits + total_sfc_bits + total_overhead_bits
     
-    sizes = [total_mdct, total_sfc, total_overhead]
+    sizes = [total_stream_bits, total_sfc_bits, total_overhead_bits]
     labels = ['MDCT Coefficients', 'Scalefactors', 'Overhead']
     colors = ['#ff9999', '#66b3ff', '#99ff99']
-    explode = (0.05, 0.05, 0.05)
+    explode = (0.08, 0.08, 0.08)
     
     axes[1, 0].pie(sizes, explode=explode, labels=labels, colors=colors, autopct='%1.1f%%',
                    shadow=True, startangle=90)
@@ -492,7 +519,7 @@ def plot_compression_analysis(aac_seq, fs=48000, save_path=None):
     # Plot 4: Compression statistics
     axes[1, 1].axis('off')
     
-    # Calculate statistics
+    # Calculate statistics (same way as demo_aac_3.py)
     original_bitrate = 16 * 2 * fs / 1000  # kbps (16-bit stereo)
     compression_ratio = original_bitrate / avg_bitrate
     
@@ -505,13 +532,13 @@ def plot_compression_analysis(aac_seq, fs=48000, save_path=None):
     Compression Ratio:     {compression_ratio:.2f}x
     
     Total Frames:          {len(aac_seq)}
-    Total Bits:            {sum(bits_per_frame):,}
+    Total Bits:            {total_bits:,}
     Average Bits/Frame:    {np.mean(bits_per_frame):.1f}
     
-    Bit Distribution:
-      - MDCT Coefficients: {total_mdct:,} bits ({100*total_mdct/sum(bits_per_frame):.1f}%)
-      - Scalefactors:      {total_sfc:,} bits ({100*total_sfc/sum(bits_per_frame):.1f}%)
-      - Overhead:          {total_overhead:,} bits ({100*total_overhead/sum(bits_per_frame):.1f}%)
+    Bitrate Breakdown:
+      - Stream bits:       {total_stream_bits:,} bits ({100*total_stream_bits/total_bits:.1f}%)
+      - SFC bits:          {total_sfc_bits:,} bits ({100*total_sfc_bits/total_bits:.1f}%)
+      - Overhead bits:     {total_overhead_bits:,} bits ({100*total_overhead_bits/total_bits:.1f}%)
     """
     
     axes[1, 1].text(0.1, 0.5, stats_text, fontsize=11, family='monospace',
