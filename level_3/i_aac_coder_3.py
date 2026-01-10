@@ -105,13 +105,12 @@ def i_aac_coder_3(aac_seq_3, filename_out):
         frame_F_chl = i_tns(frame_F_chl, frame_type, frame["chl"]["tns_coeffs"])
         frame_F_chr = i_tns(frame_F_chr, frame_type, frame["chr"]["tns_coeffs"])
 
-        # Combine channels for inverse filterbank
-        if frame_type == "ESH":
-            frame_F = np.stack([frame_F_chl, frame_F_chr], axis=2)
-        else:
-            frame_F = np.column_stack([frame_F_chl.flatten(), frame_F_chr.flatten()])
-
-        frame_T = i_filter_bank(frame_F, frame_type, win_type)
+        # Apply inverse filterbank to each channel separately
+        frame_T_chl = i_filter_bank(frame_F_chl, frame_type, win_type)
+        frame_T_chr = i_filter_bank(frame_F_chr, frame_type, win_type)
+        
+        # Combine channels (2048, 2)
+        frame_T = np.column_stack([frame_T_chl, frame_T_chr])
         
         decoded_frames.append(frame_T)
 

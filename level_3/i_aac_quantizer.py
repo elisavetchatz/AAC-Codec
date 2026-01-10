@@ -38,7 +38,8 @@ def i_aac_quantizer(S, sfc, G, frame_type):
         for sf in range(8):
 
             # 1. Reconstruct alpha(b) from DPCM scalefactors
-            alpha_b = np.cumsum(sfc[:, sf])
+            # Limit to NB bands in case Huffman decoding returns extra values
+            alpha_b = np.cumsum(sfc[:, sf])[:NB]
 
             # 2. Expand alpha(b) to alpha(k)
             alpha_k = build_alpha_per_coeff(alpha_b, wlow, whigh, 128)
@@ -54,8 +55,9 @@ def i_aac_quantizer(S, sfc, G, frame_type):
     # LONG FRAMES (OLS, LSS, LPS)
     else:
         # 1. Reconstruct alpha(b) from DPCM scalefactors
-        alpha_b = np.cumsum(sfc.flatten())
-
+        # Limit to NB bands in case Huffman decoding returns extra values
+        alpha_b = np.cumsum(sfc.flatten())[:NB]
+        
         # 2. Expand alpha(b) to alpha(k)
         alpha_k = build_alpha_per_coeff(alpha_b, wlow, whigh, 1024)
 

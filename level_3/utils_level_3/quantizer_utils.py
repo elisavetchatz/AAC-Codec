@@ -1,4 +1,5 @@
 import numpy as np
+import os
 from scipy.io import loadmat
 
 MAGIC_NUMBER = 0.4054
@@ -11,15 +12,18 @@ def load_scalefactor_bands(frame_type):
     According to the assignment, scalefactor bands
     are identical to psychoacoustic bands.
     """
-    tables = loadmat("TableB219.mat")
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    root_dir = os.path.dirname(os.path.dirname(current_dir))
+    mat_file = os.path.join(root_dir, 'TableB219.mat')
+    tables = loadmat(mat_file)
 
     if frame_type == "ESH":
         band_table = tables["B219b"]   # short windows (42 bands)
     else:
         band_table = tables["B219a"]   # long windows (69 bands)
 
-    wlow = band_table[:, 2].astype(int)
-    whigh = band_table[:, 3].astype(int)
+    wlow = band_table[:, 1].astype(int)
+    whigh = band_table[:, 2].astype(int)
 
     return wlow, whigh
 

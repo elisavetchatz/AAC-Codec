@@ -101,18 +101,18 @@ def get_spreading_tables():
         # Extract columns from tables
         # Column 0: band index
         # Column 1: wlow (lower frequency index)
-        # Column 2: bval (central frequency)
-        # Column 3: whigh (upper frequency index)
-        # Column 4: width
+        # Column 2: whigh (upper frequency index)
+        # Column 3: width (number of coefficients)
+        # Column 4: bval (central Bark frequency)
         # Column 5: qsthr (absolute threshold in quiet, dB)
         
-        bval_long = B219a[:, 2] 
-        bval_short = B219b[:, 2]
+        bval_long = B219a[:, 4] 
+        bval_short = B219b[:, 4]
         
         wlow_long = B219a[:, 1].astype(int)
-        whigh_long = B219a[:, 3].astype(int)
+        whigh_long = B219a[:, 2].astype(int)
         wlow_short = B219b[:, 1].astype(int)
-        whigh_short = B219b[:, 3].astype(int)
+        whigh_short = B219b[:, 2].astype(int)
         
         qsthr_long = B219a[:, 5]
         qsthr_short = B219b[:, 5]
