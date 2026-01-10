@@ -4,7 +4,7 @@ import scipy.signal as signal
 from matplotlib.gridspec import GridSpec
 
 
-def plot_audio_waveform(x_original, x_decoded, fs, save_path=None, error_ylim=0.1):
+def plot_audio_waveform(x_original, x_decoded, fs, save_path=None, error_ylim=0.5):
     """
     Plot the original vs decoded audio waveform.
     
