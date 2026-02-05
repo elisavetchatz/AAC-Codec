@@ -1,12 +1,3 @@
-"""
-Entropy Analysis for AAC Huffman Coding
-
-This module analyzes the compression efficiency of AAC's tuple-based Huffman coding
-by comparing the average codeword length (L) with the Shannon entropy (H).
-
-Shannon's Theorem: H ≤ L < H + 1 (for optimal Huffman coding)
-"""
-
 import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
@@ -224,89 +215,25 @@ def analyze_frame_entropy(frame_data, frame_idx=0, verbose=False, channel='left'
     L_tuple = total_bits / num_tuples if num_tuples > 0 else 0
     L_symbol = total_bits / num_symbols if num_symbols > 0 else 0
     
-    # NOW: Compute EXACT entropy if symbols are available
-    if symbols is not None:
-        # Extract tuples from quantized symbols
-        tuples = extract_tuples(symbols, codebook)
-        
-        if len(tuples) > 0:
-            # Compute EXACT entropy from tuple distribution
-            H_tuple, prob_dist = compute_entropy(tuples)
-            H_symbol = H_tuple / tuple_size  # Per symbol
-            
-            # Efficiency metrics
-            efficiency = H_tuple / L_tuple if L_tuple > 0 else 0
-            redundancy = L_tuple - H_tuple
-            shannon_satisfied = H_tuple <= L_tuple < H_tuple + 1 if H_tuple > 0 else True
-            
-            # Compression ratio
-            uncompressed_bits = num_symbols * 16  # 16-bit fixed point
-            compression_ratio = uncompressed_bits / total_bits if total_bits > 0 else 0
-            
-            if verbose:
-                print(f"\n{'='*70}")
-                print(f"Frame {frame_idx} - EXACT Entropy Analysis ({channel} channel)")
-                print(f"{'='*70}")
-                print(f"Codebook: {codebook} ({tuple_size}-tuples)")
-                print(f"Number of tuples: {len(tuples)}")
-                print(f"Unique tuples: {len(prob_dist)}")
-                print(f"\nEntropy (H): {H_tuple:.3f} bits/tuple ({H_symbol:.3f} bits/symbol)")
-                print(f"Avg codeword length (L): {L_tuple:.3f} bits/tuple ({L_symbol:.3f} bits/symbol)")
-                print(f"Efficiency: {efficiency*100:.2f}% (H/L)")
-                print(f"Redundancy: {redundancy:.3f} bits/tuple")
-                print(f"\nShannon bound: H ≤ L < H+1")
-                print(f"  {H_tuple:.3f} ≤ {L_tuple:.3f} < {H_tuple+1:.3f} ✓" if H_tuple <= L_tuple < H_tuple+1 else f"  ⚠ Outside Shannon bound!")
-                
-                # Show most common tuples
-                sorted_tuples = sorted(prob_dist.items(), key=lambda x: x[1], reverse=True)[:5]
-                print(f"\nTop 5 most common tuples:")
-                for tup, prob in sorted_tuples:
-                    print(f"  {tup}: {prob*100:.2f}%")
-            
-            return {
-                'frame_idx': frame_idx,
-                'channel': channel,
-                'codebook': codebook,
-                'tuple_size': tuple_size,
-                'num_tuples': len(tuples),
-                'unique_tuples': len(prob_dist),
-                'H_tuple': H_tuple,
-                'H_symbol': H_symbol,
-                'L_tuple': L_tuple,
-                'L_symbol': L_symbol,
-                'efficiency': efficiency,
-                'redundancy': redundancy,
-                'shannon_satisfied': shannon_satisfied,
-                'compression_ratio': compression_ratio,
-                'prob_dist': prob_dist,
-                'total_bits': total_bits,
-                'method': 'exact'  # Flag indicating exact computation
-            }
+    # Compute EXACT entropy from quantized symbols
+    if symbols is None:
+        raise ValueError(f"Quantized symbols not available for frame {frame_idx}. "
+                        "Please re-encode with updated aac_coder_3.py that saves symbols S.")
     
-    # FALLBACK: Estimate entropy if symbols not available (old method)
-    # Since we don't have the original quantized symbols, we estimate entropy
-    # based on the sparsity (nonzero coefficients)
-    # For a sparse distribution with many zeros:
-    # H ≈ -p_zero * log2(p_zero) - p_nonzero * log2(p_nonzero/num_unique_nonzero)
-    p_zero = 1 - (nonzero_coeffs / num_symbols)
-    p_nonzero = nonzero_coeffs / num_symbols
+    # Extract tuples from quantized symbols
+    tuples = extract_tuples(symbols, codebook)
     
-    # Estimate entropy (conservative estimate)
-    # Assume nonzero values are distributed among ~10 unique values (typical for AAC)
-    if p_zero > 0 and p_zero < 1:
-        H_symbol_est = -p_zero * np.log2(p_zero) if p_zero > 0 else 0
-        if p_nonzero > 0:
-            # Assume uniform distribution among nonzero values
-            H_symbol_est += p_nonzero * np.log2(10)  # ~10 typical nonzero values
-    else:
-        H_symbol_est = 0.0
+    if len(tuples) == 0:
+        raise ValueError(f"No tuples extracted from frame {frame_idx}")
     
-    H_tuple_est = H_symbol_est * tuple_size
+    # Compute EXACT entropy from tuple distribution
+    H_tuple, prob_dist = compute_entropy(tuples)
+    H_symbol = H_tuple / tuple_size  # Per symbol
     
-    # Efficiency metrics (estimated)
-    efficiency = (H_tuple_est / L_tuple) if L_tuple > 0 and H_tuple_est > 0 else 0
-    redundancy = L_tuple - H_tuple_est
-    shannon_satisfied = H_tuple_est <= L_tuple < H_tuple_est + 1 if H_tuple_est > 0 else True
+    # Efficiency metrics
+    efficiency = H_tuple / L_tuple if L_tuple > 0 else 0
+    redundancy = L_tuple - H_tuple
+    shannon_satisfied = H_tuple <= L_tuple < H_tuple + 1 if H_tuple > 0 else True
     
     # Compression ratio
     uncompressed_bits = num_symbols * 16  # 16-bit fixed point
@@ -314,51 +241,43 @@ def analyze_frame_entropy(frame_data, frame_idx=0, verbose=False, channel='left'
     
     if verbose:
         print(f"\n{'='*70}")
-        print(f"Frame {frame_idx} - ESTIMATED Entropy Analysis ({channel} channel)")
-        print(f"⚠ Using FALLBACK estimation (symbols not available)")
+        print(f"Frame {frame_idx} - EXACT Entropy Analysis ({channel} channel)")
         print(f"{'='*70}")
         print(f"Codebook: {codebook} ({tuple_size}-tuples)")
-        print(f"Sparsity: {p_zero*100:.1f}% zeros, {p_nonzero*100:.1f}% nonzero")
-        print(f"\nEstimated Entropy (H): {H_tuple_est:.3f} bits/tuple ({H_symbol_est:.3f} bits/symbol)")
+        print(f"Number of tuples: {len(tuples)}")
+        print(f"Unique tuples: {len(prob_dist)}")
+        print(f"\nEntropy (H): {H_tuple:.3f} bits/tuple ({H_symbol:.3f} bits/symbol)")
         print(f"Avg codeword length (L): {L_tuple:.3f} bits/tuple ({L_symbol:.3f} bits/symbol)")
-        print(f"Estimated Efficiency: {efficiency*100:.2f}% (H/L)")
+        print(f"Efficiency: {efficiency*100:.2f}% (H/L)")
+        print(f"Redundancy: {redundancy:.3f} bits/tuple")
+        print(f"\nShannon bound: H ≤ L < H+1")
+        print(f"  {H_tuple:.3f} ≤ {L_tuple:.3f} < {H_tuple+1:.3f} ✓" if shannon_satisfied else f"  ⚠ Outside Shannon bound!")
+        
+        # Show most common tuples
+        sorted_tuples = sorted(prob_dist.items(), key=lambda x: x[1], reverse=True)[:5]
+        print(f"\nTop 5 most common tuples:")
+        for tup, prob in sorted_tuples:
+            print(f"  {tup}: {prob*100:.2f}%")
     
-    results = {
+    return {
         'frame_idx': frame_idx,
         'channel': channel,
         'codebook': codebook,
         'tuple_size': tuple_size,
-        'num_tuples': num_tuples,
-        'H_tuple': H_tuple_est,
-        'H_symbol': H_symbol_est,
+        'num_tuples': len(tuples),
+        'unique_tuples': len(prob_dist),
+        'H_tuple': H_tuple,
+        'H_symbol': H_symbol,
         'L_tuple': L_tuple,
         'L_symbol': L_symbol,
         'efficiency': efficiency,
         'redundancy': redundancy,
         'shannon_satisfied': shannon_satisfied,
         'compression_ratio': compression_ratio,
-        'nonzero_coeffs': nonzero_coeffs,
-        'sparsity': p_zero * 100,  # percentage of zeros
-        'prob_dist': {},  # Empty since we don't have actual symbols
+        'prob_dist': prob_dist,
         'total_bits': total_bits,
-        'method': 'estimated'  # Flag indicating estimation
+        'method': 'exact'
     }
-    
-    if verbose:
-        print(f"\n=== Frame {frame_idx} Analysis ({channel} channel) ===")
-        print(f"Codebook: {codebook} ({tuple_size}-tuple encoding)")
-        print(f"Symbols: {num_symbols}, Tuples: {num_tuples}")
-        print(f"Nonzero coeffs: {nonzero_coeffs} ({100-p_zero*100:.1f}%)")
-        print(f"\nEstimated Tuple Entropy (H):  {H_tuple_est:.4f} bits/tuple")
-        print(f"Avg Codeword Length (L):       {L_tuple:.4f} bits/tuple")
-        print(f"Efficiency:                    {efficiency*100:.2f}%")
-        print(f"Redundancy:                    {redundancy:.4f} bits/tuple")
-        print(f"Shannon's bound: {'✓' if shannon_satisfied else '✗'} ({H_tuple_est:.2f} ≤ {L_tuple:.2f} < {H_tuple_est+1:.2f})")
-        print(f"\nPer-symbol: H≈{H_symbol_est:.4f}, L={L_symbol:.4f} bits/symbol")
-        print(f"Compression ratio: {compression_ratio:.2f}x vs 16-bit")
-        print(f"Total bitstream: {total_bits} bits")
-    
-    return results
 
 
 def analyze_all_frames(aac_seq, max_frames=None, verbose=False):
@@ -396,9 +315,6 @@ def analyze_all_frames(aac_seq, max_frames=None, verbose=False):
     compression_ratios = [r['compression_ratio'] for r in results]
     shannon_violations = sum(1 for r in results if not r['shannon_satisfied'])
     
-    # Check if we have exact or estimated results
-    has_exact = any(r['method'] == 'exact' for r in results)
-    
     summary = {
         'num_frames': num_frames,
         'mean_H_tuple': np.mean(H_tuples),
@@ -412,7 +328,7 @@ def analyze_all_frames(aac_seq, max_frames=None, verbose=False):
         'mean_compression_ratio': np.mean(compression_ratios),
         'shannon_violations': shannon_violations,
         'violation_rate': shannon_violations / num_frames * 100,
-        'has_exact_entropy': has_exact
+        'has_exact_entropy': True
     }
     
     return results, summary
@@ -424,9 +340,7 @@ def print_summary(results, summary):
     print("AAC HUFFMAN ENTROPY ANALYSIS")
     print(f"{'='*70}")
     
-    method_label = "EXACT" if summary.get('has_exact_entropy', False) else "ESTIMATED"
-    
-    print(f"\nFrames: {summary['num_frames']} | Method: {method_label}")
+    print(f"\nFrames: {summary['num_frames']} | Method: EXACT")
     print(f"\nEntropy (H):         {summary['mean_H_tuple']:.3f} bits/tuple")
     print(f"Codeword Length (L): {summary['mean_L_tuple']:.3f} bits/tuple")
     print(f"Efficiency (H/L):    {summary['mean_efficiency']*100:.1f}%")
@@ -472,19 +386,11 @@ def visualize_entropy_analysis(results, summary, save_dir=r'C:\Users\30690\AAC-C
     
     ax1.set_xlabel('Frame Index', fontsize=11, fontweight='bold')
     ax1.set_ylabel('Bits per Tuple', fontsize=11, fontweight='bold')
-    
-    # Title depends on whether we have exact or estimated entropy
-    method_label = "EXACT" if summary.get('has_exact_entropy', False) else "Estimated"
-    ax1.set_title(f'{method_label} Entropy vs Actual Codeword Length\n(Sample Frames)', fontsize=12, fontweight='bold')
+    ax1.set_title('EXACT Entropy vs Actual Codeword Length\n(Sample Frames)', fontsize=12, fontweight='bold')
     ax1.set_xticks(x)
     ax1.set_xticklabels(frame_indices)
     ax1.legend()
     ax1.grid(axis='y', alpha=0.3)
-    
-    if not summary.get('has_exact_entropy', False):
-        ax1.text(0.02, 0.98, 'Note: Entropy estimated from sparsity', 
-                 transform=ax1.transAxes, fontsize=8, verticalalignment='top',
-                 bbox=dict(boxstyle='round', facecolor='wheat', alpha=0.5))
     
     fig1.tight_layout()
     save_path1 = os.path.join(save_dir, '1_entropy_vs_length.png')
