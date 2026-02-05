@@ -20,7 +20,7 @@ def main():
     """Run entropy analysis on AAC encoded sequence."""
     
     # Load AAC encoded sequence
-    aac_file = '../../outputs/aac_seq_3.mat'
+    aac_file = 'C:\\Users\\30690\\AAC-Codec\\level_3\\outputs\\aac_seq_3.mat'
     
     try:
         print(f"\nLoading AAC sequence from: {aac_file}")
@@ -59,20 +59,44 @@ def main():
         print("\n" + "="*70)
         print("INTERPRETATION")
         print("="*70)
-        print("\nLimitations:")
-        print("- Entropy values are ESTIMATED (quantized symbols not stored)")
-        print("- Estimates based on coefficient sparsity (nonzero count)")
-        print("- For exact entropy analysis, modify encoder to save symbols")
         
-        print("\nWhat we CAN conclude:")
-        print(f"✓ Compression ratio: {summary['mean_compression_ratio']:.2f}x reduction")
-        print(f"✓ Effective bit rate: {16/summary['mean_compression_ratio']:.2f} bits/symbol")
-        print(f"✓ Huffman encoding achieves ~{100*(1-1/summary['mean_compression_ratio']):.1f}% size reduction")
+        if summary['has_exact_entropy']:
+            print("\n✅ Using EXACT entropy computation from quantized symbols")
+            print("\nKey Findings:")
+            print(f"✓ Shannon Entropy (H): {summary['mean_H_tuple']:.3f} bits/tuple")
+            print(f"✓ Huffman Length (L):  {summary['mean_L_tuple']:.3f} bits/tuple")
+            print(f"✓ Coding Efficiency:   {summary['mean_efficiency']*100:.2f}% (H/L)")
+            print(f"✓ Redundancy:          {summary['mean_redundancy']:.3f} bits/tuple")
+            
+            print(f"\n✓ Compression ratio: {summary['mean_compression_ratio']:.2f}x reduction")
+            print(f"✓ Effective bit rate: {16/summary['mean_compression_ratio']:.2f} bits/symbol")
+            print(f"✓ Huffman encoding achieves ~{100*(1-1/summary['mean_compression_ratio']):.1f}% size reduction")
+            
+            print("\nWhat the efficiency tells us:")
+            if summary['mean_efficiency'] > 0.85:
+                print("✅ EXCELLENT: Huffman coding is near-optimal for this data")
+            elif summary['mean_efficiency'] > 0.65:
+                print("✓ GOOD: Huffman coding is reasonably efficient")
+            elif summary['mean_efficiency'] > 0.45:
+                print("⚠ MODERATE: Some redundancy exists - room for improvement")
+            else:
+                print("⚠ LOW: Significant redundancy - consider better codebook selection")
+            
+            print(f"\nRedundancy analysis:")
+            print(f"  Average waste: {summary['mean_redundancy']:.2f} bits/tuple")
+            print(f"  This represents {summary['mean_redundancy']/summary['mean_L_tuple']*100:.1f}% of encoded size")
+            
+        else:
+            print("\n⚠ Using ESTIMATED entropy (quantized symbols not available)")
+            print("\nLimitations:")
+            print("- Entropy values are estimated from coefficient sparsity")
+            print("- For exact analysis, re-encode with updated aac_coder_3.py")
+            
+            print("\nWhat we CAN conclude:")
+            print(f"✓ Compression ratio: {summary['mean_compression_ratio']:.2f}x reduction")
+            print(f"✓ Effective bit rate: {16/summary['mean_compression_ratio']:.2f} bits/symbol")
+            print(f"✓ Huffman encoding achieves ~{100*(1-1/summary['mean_compression_ratio']):.1f}% size reduction")
         
-        print("\nTo get EXACT entropy vs codeword length comparison:")
-        print("1. Modify aac_coder_3.py to save quantized symbols S")
-        print("2. Add S to the output structure for each channel")
-        print("3. Re-run encoding and this analysis")
         print("="*70)
         
     except FileNotFoundError:

@@ -124,6 +124,7 @@ def aac_coder_3(filename_in, filename_aac_coded):
                 "sfc_codebook": sfc_codebook_chl,
                 "stream": stream_chl,
                 "codebook": codebook_chl,
+                "S": S_chl.flatten(),  # Quantized symbols for entropy analysis
                 "nonzero_coeffs": nonzero_chl
             },
             "chr": {
@@ -134,6 +135,7 @@ def aac_coder_3(filename_in, filename_aac_coded):
                 "sfc_codebook": sfc_codebook_chr,
                 "stream": stream_chr,
                 "codebook": codebook_chr,
+                "S": S_chr.flatten(),  # Quantized symbols for entropy analysis
                 "nonzero_coeffs": nonzero_chr
             },
             "total_coeffs": total_coeffs_frame
