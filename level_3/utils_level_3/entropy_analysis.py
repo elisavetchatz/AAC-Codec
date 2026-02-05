@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
 import os
+import scipy.io as sio
 
 
 # Codebook tuple sizes (AAC standard)
@@ -135,7 +136,7 @@ def analyze_frame_entropy(frame_data, frame_idx=0, verbose=False, channel='left'
     if isinstance(codebook_raw, np.ndarray):
         codebook_arr = codebook_raw.flatten()
         # Get most common codebook
-        codebook = int(np.median(codebook_arr[codebook_arr > 0])) if len(codebook_arr[codebook_arr > 0]) > 0 else 3
+        codebook = int(np.median(codebook_arr[codebook_arr > 0]).item()) if len(codebook_arr[codebook_arr > 0]) > 0 else 3
     else:
         codebook = int(codebook_raw)
     
@@ -192,7 +193,7 @@ def analyze_frame_entropy(frame_data, frame_idx=0, verbose=False, channel='left'
         
     if nonzero_raw is not None:
         if isinstance(nonzero_raw, np.ndarray):
-            nonzero_coeffs = int(nonzero_raw.flatten()[0])
+            nonzero_coeffs = int(nonzero_raw.flatten()[0].item())
         else:
             nonzero_coeffs = int(nonzero_raw)
     else:
@@ -383,15 +384,7 @@ def analyze_all_frames(aac_seq, max_frames=None, verbose=False):
     num_frames = len(aac_seq) if max_frames is None else min(max_frames, len(aac_seq))
     results = []
     
-    if verbose:
-        print(f"\n{'='*70}")
-        print(f"Analyzing {num_frames} AAC frames...")
-        print(f"{'='*70}")
-    
     for i in range(num_frames):
-        if verbose and i % 10 == 0:
-            print(f"Processing frame {i}/{num_frames}...")
-        
         result = analyze_frame_entropy(aac_seq[i], frame_idx=i, verbose=False)
         results.append(result)
     
@@ -428,47 +421,23 @@ def analyze_all_frames(aac_seq, max_frames=None, verbose=False):
 def print_summary(results, summary):
     """Print formatted summary of entropy analysis."""
     print(f"\n{'='*70}")
-    print("AAC HUFFMAN ENTROPY ANALYSIS - SUMMARY")
+    print("AAC HUFFMAN ENTROPY ANALYSIS")
     print(f"{'='*70}")
     
-    # Check if we have exact entropy or estimates
-    if summary['has_exact_entropy']:
-        print("✅ Using EXACT entropy (quantized symbols available)")
-    else:
-        print("⚠ Using ESTIMATED entropy (quantized symbols not saved)")
-        print("   Re-encode with updated encoder for exact results")
+    method_label = "EXACT" if summary.get('has_exact_entropy', False) else "ESTIMATED"
     
-    print(f"\nTotal Frames Analyzed: {summary['num_frames']}")
+    print(f"\nFrames: {summary['num_frames']} | Method: {method_label}")
+    print(f"\nEntropy (H):         {summary['mean_H_tuple']:.3f} bits/tuple")
+    print(f"Codeword Length (L): {summary['mean_L_tuple']:.3f} bits/tuple")
+    print(f"Efficiency (H/L):    {summary['mean_efficiency']*100:.1f}%")
+    print(f"Redundancy (L-H):    {summary['mean_redundancy']:.3f} bits/tuple")
     
-    method_label = "EXACT" if summary['has_exact_entropy'] else "Estimated"
+    print(f"\nCompression: {summary['mean_compression_ratio']:.2f}x (effective: {16/summary['mean_compression_ratio']:.2f} bits/symbol)")
     
-    print(f"\n--- AGGREGATE RESULTS (Tuple-Based) ---")
-    print(f"{method_label} Entropy (H):       {summary['mean_H_tuple']:.4f} ± {summary['std_H_tuple']:.4f} bits/tuple")
-    print(f"Average Codeword Length (L): {summary['mean_L_tuple']:.4f} ± {summary['std_L_tuple']:.4f} bits/tuple")
-    print(f"{method_label} Efficiency (H/L):  {summary['mean_efficiency']*100:.2f} ± {summary['std_efficiency']*100:.2f}%")
-    print(f"Redundancy (L-H):            {summary['mean_redundancy']:.4f} ± {summary['std_redundancy']:.4f} bits/tuple")
-    print(f"\nOverall Compression Ratio:   {summary['mean_compression_ratio']:.2f}x (vs 16-bit fixed)")
-    print(f"\n--- COMPRESSION INTERPRETATION ---")
-    if summary['mean_compression_ratio'] >= 5:
-        print(f"✓ Excellent compression achieved ({summary['mean_compression_ratio']:.1f}x)")
-    else:
-        print(f"○ Moderate compression ({summary['mean_compression_ratio']:.1f}x)")
-    print(f"  Effective bit rate: {16/summary['mean_compression_ratio']:.2f} bits/symbol")
-    
-    # Show first few frames
-    print(f"\n--- SAMPLE FRAME DETAILS (First 5 Frames) ---")
-    print(f"{'Frame':<8} {'CB':<4} {'H':<12} {'L':<12} {'Eff%':<10} {'Comp.Ratio':<12}")
-    print("-" * 70)
-    for r in results[:5]:
-        print(f"{r['frame_idx']:<8} {r['codebook']:<4} {r['H_tuple']:<12.4f} {r['L_tuple']:<12.4f} {r['efficiency']*100:<10.2f} {r['compression_ratio']:<12.2f}x")
-    
-    if len(results) > 5:
-        print("...")
-    
-    print(f"{'='*70}\n")
+    print(f"\n{'='*70}")
 
 
-def visualize_entropy_analysis(results, summary, save_dir='outputs/plots/encoding_analysis'):
+def visualize_entropy_analysis(results, summary, save_dir=r'C:\Users\30690\AAC-Codec\level_3\outputs\plots\encoding_analysis'):
     """
     Create comprehensive visualization of entropy analysis as 4 separate plots.
     
@@ -520,65 +489,8 @@ def visualize_entropy_analysis(results, summary, save_dir='outputs/plots/encodin
     fig1.tight_layout()
     save_path1 = os.path.join(save_dir, '1_entropy_vs_length.png')
     fig1.savefig(save_path1, dpi=300, bbox_inches='tight')
-    print(f"\n✓ Plot 1 saved: {save_path1}")
     plt.close(fig1)
-    
-    # ========== Plot 2: Efficiency distribution ==========
-    fig2 = plt.figure(figsize=(10, 6))
-    ax2 = fig2.add_subplot(111)
-    efficiencies = [r['efficiency'] for r in results]
-    ax2.hist(efficiencies, bins=30, color='#9b59b6', alpha=0.7, edgecolor='black')
-    ax2.axvline(summary['mean_efficiency'], color='red', linestyle='--', linewidth=2, 
-                label=f"Mean: {summary['mean_efficiency']:.2f}%")
-    ax2.set_xlabel('Efficiency (%)', fontsize=11, fontweight='bold')
-    ax2.set_ylabel('Number of Frames', fontsize=11, fontweight='bold')
-    ax2.set_title(f'Efficiency Distribution Across All Frames\n(n={len(results)})', fontsize=12, fontweight='bold')
-    ax2.legend()
-    ax2.grid(axis='y', alpha=0.3)
-    
-    fig2.tight_layout()
-    save_path2 = os.path.join(save_dir, '2_efficiency_distribution.png')
-    fig2.savefig(save_path2, dpi=300, bbox_inches='tight')
-    print(f"✓ Plot 2 saved: {save_path2}")
-    plt.close(fig2)
-    
-    # ========== Plot 3: Tuple probability distribution ==========
-    fig3 = plt.figure(figsize=(12, 6))
-    ax3 = fig3.add_subplot(111)
-    repr_frame = results[0]  # First frame as representative
-    tuple_probs = repr_frame.get('prob_dist', {})
-    
-    if tuple_probs and len(tuple_probs) > 0:
-        # Get top 20 most frequent tuples
-        sorted_tuples = sorted(tuple_probs.items(), key=lambda x: x[1], reverse=True)[:20]
-        tuple_labels = [str(t) for t, p in sorted_tuples]
-        tuple_probs_values = [p for t, p in sorted_tuples]
-        
-        ax3.bar(range(len(tuple_labels)), tuple_probs_values, color='#e74c3c', alpha=0.7)
-        ax3.set_xlabel('Tuple', fontsize=11, fontweight='bold')
-        ax3.set_ylabel('Probability', fontsize=11, fontweight='bold')
-        ax3.set_title(f'Tuple Probability Distribution\n(Frame {repr_frame["frame_idx"]}, Top 20)', fontsize=12, fontweight='bold')
-        ax3.set_xticks(range(len(tuple_labels)))
-        ax3.set_xticklabels(tuple_labels, rotation=45, ha='right', fontsize=8)
-        ax3.grid(axis='y', alpha=0.3)
-    else:
-        # Show sparsity info instead
-        sparsity_data = [r.get('sparsity', 0) for r in results[:20]]
-        frame_idx_data = [r['frame_idx'] for r in results[:20]]
-        ax3.bar(range(len(sparsity_data)), sparsity_data, color='#e74c3c', alpha=0.7)
-        ax3.set_xlabel('Frame Index', fontsize=11, fontweight='bold')
-        ax3.set_ylabel('Sparsity (%)', fontsize=11, fontweight='bold')
-        ax3.set_title(f'Coefficient Sparsity (First 20 Frames)\n(Higher = More Zeros = Lower Entropy)', fontsize=12, fontweight='bold')
-        ax3.set_xticks(range(len(frame_idx_data)))
-        ax3.set_xticklabels(frame_idx_data)
-        ax3.grid(axis='y', alpha=0.3)
-    
-    fig3.tight_layout()
-    save_path3 = os.path.join(save_dir, '3_probability_or_sparsity.png')
-    fig3.savefig(save_path3, dpi=300, bbox_inches='tight')
-    print(f"✓ Plot 3 saved: {save_path3}")
-    plt.close(fig3)
-    
+
     # ========== Plot 4: H and L trend across all frames ==========
     fig4 = plt.figure(figsize=(12, 6))
     ax4 = fig4.add_subplot(111)
@@ -604,8 +516,39 @@ def visualize_entropy_analysis(results, summary, save_dir='outputs/plots/encodin
     fig4.tight_layout()
     save_path4 = os.path.join(save_dir, '4_trend_across_frames.png')
     fig4.savefig(save_path4, dpi=300, bbox_inches='tight')
-    print(f"✓ Plot 4 saved: {save_path4}")
     plt.close(fig4)
-    
-    print(f"\n✓ All 4 plots saved to: {save_dir}")
 
+def main():
+    """Run entropy analysis on AAC encoded sequence."""
+    
+    # Load AAC encoded sequence
+    aac_file = 'C:\\Users\\30690\\AAC-Codec\\level_3\\outputs\\aac_seq_3.mat'
+    
+    try:
+        mat_data = sio.loadmat(aac_file)
+        
+        # Handle different variable names
+        if 'aac_seq_3' in mat_data:
+            aac_seq = mat_data['aac_seq_3'].squeeze()
+        else:
+            print(f"Error: Could not find AAC sequence in file")
+            return
+        
+        # Analyze all frames
+        results, summary = analyze_all_frames(aac_seq, verbose=False)
+        
+        # Print summary
+        print_summary(results, summary)
+        
+        # Visualize results
+        visualize_entropy_analysis(results, summary)
+        
+        print(f"\n✓ Analysis complete. Plots saved to: C:\\Users\\30690\\AAC-Codec\\level_3\\outputs\\plots\\encoding_analysis")
+        
+    except FileNotFoundError:
+        print(f"\nError: File not found. Run demo_aac_3.py first.")
+    except Exception as e:
+        print(f"\nError: {e}")
+
+if __name__ == "__main__":
+    main()
