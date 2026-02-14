@@ -44,10 +44,9 @@ def demo_acc_1(filename_in, filename_out):
     noise_power = np.sum(noise ** 2)
     
     # Calculate SNR in dB
-    if noise_power > 0:
-        SNR = 10 * np.log10(signal_power / noise_power)
-    else:
-        SNR = float('inf')  # Perfect reconstruction
+    eps = 1e-12
+    SNR = 10 * np.log10(signal_power / (noise_power + eps))
+
     
     # Generate plots
     plot = True

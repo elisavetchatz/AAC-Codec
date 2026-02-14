@@ -44,10 +44,9 @@ def demo_aac_3(filename_in, filename_out, filename_aac_coded):
     signal_power = np.sum(x_original ** 2)
     noise_power = np.sum((x_original - x_decoded) ** 2)
     
-    if noise_power > 0:
-        SNR = 10 * np.log10(signal_power / noise_power)
-    else:
-        SNR = float('inf')
+    eps = 1e-12
+    SNR = 10 * np.log10(signal_power / (noise_power + eps))
+
     
     # Calculate bitrate and analyze sparsity
     total_stream_bits = 0

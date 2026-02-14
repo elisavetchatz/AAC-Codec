@@ -48,10 +48,9 @@ def demo_aac_2(filename_in, filename_out):
     noise = x_original - x_decoded
     noise_power = np.sum(noise ** 2)
 
-    if noise_power > 0:
-        SNR = 10 * np.log10(signal_power / noise_power)
-    else:
-        SNR = float('inf')
+    eps = 1e-12
+    SNR = 10 * np.log10(signal_power / (noise_power + eps))
+
 
     # plots
     plot = False
