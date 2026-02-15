@@ -240,19 +240,6 @@ def analyze_frame_entropy(frame_data, frame_idx=0, verbose=False, channel='left'
     compression_ratio = uncompressed_bits / total_bits if total_bits > 0 else 0
     
     if verbose:
-        print(f"\n{'='*70}")
-        print(f"Frame {frame_idx} - EXACT Entropy Analysis ({channel} channel)")
-        print(f"{'='*70}")
-        print(f"Codebook: {codebook} ({tuple_size}-tuples)")
-        print(f"Number of tuples: {len(tuples)}")
-        print(f"Unique tuples: {len(prob_dist)}")
-        print(f"\nEntropy (H): {H_tuple:.3f} bits/tuple ({H_symbol:.3f} bits/symbol)")
-        print(f"Avg codeword length (L): {L_tuple:.3f} bits/tuple ({L_symbol:.3f} bits/symbol)")
-        print(f"Efficiency: {efficiency*100:.2f}% (H/L)")
-        print(f"Redundancy: {redundancy:.3f} bits/tuple")
-        print(f"\nShannon bound: H ≤ L < H+1")
-        print(f"  {H_tuple:.3f} ≤ {L_tuple:.3f} < {H_tuple+1:.3f} ✓" if shannon_satisfied else f"  ⚠ Outside Shannon bound!")
-        
         # Show most common tuples
         sorted_tuples = sorted(prob_dist.items(), key=lambda x: x[1], reverse=True)[:5]
         print(f"\nTop 5 most common tuples:")
@@ -351,7 +338,7 @@ def print_summary(results, summary):
     print(f"\n{'='*70}")
 
 
-def visualize_entropy_analysis(results, summary, save_dir=r'C:\Users\30690\AAC-Codec\level_3\outputs\plots\encoding_analysis'):
+def visualize_entropy_analysis(results, summary, save_dir='level_3/outputs/plots/encoding_analysis'):
     """
     Create comprehensive visualization of entropy analysis as 4 separate plots.
     
@@ -428,7 +415,7 @@ def main():
     """Run entropy analysis on AAC encoded sequence."""
     
     # Load AAC encoded sequence
-    aac_file = 'C:\\Users\\30690\\AAC-Codec\\level_3\\outputs\\aac_seq_3.mat'
+    aac_file = 'level_3/outputs/aac_seq_3.mat'
     
     try:
         mat_data = sio.loadmat(aac_file)
@@ -449,7 +436,7 @@ def main():
         # Visualize results
         visualize_entropy_analysis(results, summary)
         
-        print(f"\n✓ Analysis complete. Plots saved to: C:\\Users\\30690\\AAC-Codec\\level_3\\outputs\\plots\\encoding_analysis")
+        print(f"\n Analysis complete. Plots saved to: level_3/outputs/plots/encoding_analysis")
         
     except FileNotFoundError:
         print(f"\nError: File not found. Run demo_aac_3.py first.")
