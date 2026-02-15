@@ -114,7 +114,7 @@ def demo_aac_3(filename_in, filename_out, filename_aac_coded):
     print("=" * 70)
     
     # Generate plots
-    plot = True
+    plot = False
     plot_dir = 'level_3/outputs/plots'
     
     if plot:

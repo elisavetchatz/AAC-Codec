@@ -49,7 +49,7 @@ def demo_acc_1(filename_in, filename_out):
 
     
     # Generate plots
-    plot = True
+    plot = False
     plot_dir = 'level_1/outputs/plots/sin_window'
     if plot:
         os.makedirs(plot_dir, exist_ok=True)
