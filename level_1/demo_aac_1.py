@@ -4,8 +4,7 @@ import soundfile as sf
 
 from aac_coder_1 import aac_coder_1
 from i_aac_coder_1 import i_aac_coder_1
-from utils_level_1.plotting_utils import (plot_audio_waveform, plot_audio_spectrogram,
-                                                  plot_encoding_process, plot_snr_analysis)
+from utils_level_1.plotting_utils import (plot_audio_waveform, plot_audio_spectrogram)
 
 def demo_acc_1(filename_in, filename_out):
 
@@ -60,12 +59,6 @@ def demo_acc_1(filename_in, filename_out):
 
         # Spectrogram analysis (original vs decoded)
         plot_audio_spectrogram(x_original, x_decoded, fs, save_path=f'{plot_dir}/spectrogram.png')
-
-        # Encoding examples: plot 3 representative frames (0, 10, 20)
-        plot_encoding_process(aac_seq_1, num_frames=3, representative_frames=[0, 10, 20], save_path=f'{plot_dir}/encoding_examples.png')
-
-        # SNR (segmental) — uses default energy threshold and clipping
-        plot_snr_analysis(x_original, x_decoded, fs, save_path=f'{plot_dir}/snr_analysis.png')
 
         print(f"All plots saved! SNR: {SNR:.2f} dB")
 
