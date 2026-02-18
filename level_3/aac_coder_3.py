@@ -11,6 +11,8 @@ from psycho import psycho
 from aac_quantizer import aac_quantizer
 from utils_level_3.huff_utils import load_LUT, encode_huff
 
+# Compression parameter: higher value = higher compression but lower quality
+COMPRESSION_OFFSET = 0  # 0=default, 2-8=higher compression
 
 def aac_coder_3(filename_in, filename_aac_coded):
     """
@@ -89,8 +91,8 @@ def aac_coder_3(filename_in, filename_aac_coded):
         SMR_chr = psycho(frame_T[:, 1], frame_type, frame_T_prev_1[:, 1], frame_T_prev_2[:, 1])
 
         # Quantization
-        S_chl, sfc_chl, G_chl = aac_quantizer(chl_F_tns, frame_type, SMR_chl)
-        S_chr, sfc_chr, G_chr = aac_quantizer(chr_F_tns, frame_type, SMR_chr)
+        S_chl, sfc_chl, G_chl = aac_quantizer(chl_F_tns, frame_type, SMR_chl, COMPRESSION_OFFSET)
+        S_chr, sfc_chr, G_chr = aac_quantizer(chr_F_tns, frame_type, SMR_chr, COMPRESSION_OFFSET)
 
         # Calculate sparsity metrics
         nonzero_chl = int(np.count_nonzero(S_chl))
@@ -107,11 +109,9 @@ def aac_coder_3(filename_in, filename_aac_coded):
             print(f"  CHL - Non-zero: {nonzero_chl}/{total_coeffs_frame} ({100*nonzero_chl/total_coeffs_frame:.1f}%), Max value: {max_coeff_chl}")
             print(f"  CHR - Non-zero: {nonzero_chr}/{total_coeffs_frame} ({100*nonzero_chr/total_coeffs_frame:.1f}%), Max value: {max_coeff_chr}")
         
-        # Huffman encoding
+        # Huffman encoding for MDCT coefficients only
         stream_chl, codebook_chl = encode_huff(S_chl.flatten().astype(int), huffLUT)
         stream_chr, codebook_chr = encode_huff(S_chr.flatten().astype(int), huffLUT)
-        sfc_stream_chl, sfc_codebook_chl = encode_huff(sfc_chl.flatten().astype(int), huffLUT)
-        sfc_stream_chr, sfc_codebook_chr = encode_huff(sfc_chr.flatten().astype(int), huffLUT)
 
         aac_seq_3.append({
             "frame_type": frame_type,
@@ -120,8 +120,7 @@ def aac_coder_3(filename_in, filename_aac_coded):
                 "tns_coeffs": tns_chl,
                 "T": SMR_chl,  # For visualization
                 "G": G_chl,
-                "sfc": sfc_stream_chl,
-                "sfc_codebook": sfc_codebook_chl,
+                "sfc": sfc_chl,  # Raw scalefactor values
                 "stream": stream_chl,
                 "codebook": codebook_chl,
                 "S": S_chl.flatten(),  # Quantized symbols for entropy analysis
@@ -131,8 +130,7 @@ def aac_coder_3(filename_in, filename_aac_coded):
                 "tns_coeffs": tns_chr,
                 "T": SMR_chr,  # For visualization
                 "G": G_chr,
-                "sfc": sfc_stream_chr,
-                "sfc_codebook": sfc_codebook_chr,
+                "sfc": sfc_chr,  # Raw scalefactor values
                 "stream": stream_chr,
                 "codebook": codebook_chr,
                 "S": S_chr.flatten(),  # Quantized symbols for entropy analysis

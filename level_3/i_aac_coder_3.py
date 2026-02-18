@@ -61,44 +61,9 @@ def i_aac_coder_3(aac_seq_3, filename_out):
         else:
             S_chr = np.array(decode_huff(frame["chr"]["stream"], huffLUT[codebook_chr]))
 
-        sfc_codebook_chl = frame["chl"]["sfc_codebook"]
+        sfc_chl = frame["chl"]["sfc"]
 
-        if sfc_codebook_chl == 0:
-            if frame_type == 'ESH':
-                num_bands = 42
-                num_windows = 8
-            else:
-                num_bands = 69
-                num_windows = 1
-        
-            sfc_chl = np.zeros((num_bands, num_windows), dtype=int)
-
-        else:
-            sfc_chl_decoded = np.array(decode_huff(frame["chl"]["sfc"], huffLUT[sfc_codebook_chl]))
-            # Reshape based on frame type
-            if frame_type == 'ESH':
-                sfc_chl = sfc_chl_decoded.reshape((42, 8))
-            else:
-                # Use actual decoded size instead of hardcoded 69
-                sfc_chl = sfc_chl_decoded.reshape((-1, 1))
-
-        sfc_codebook_chr = frame["chr"]["sfc_codebook"]
-
-        if sfc_codebook_chr == 0:
-            if frame_type == 'ESH':
-                num_bands = 42
-                num_windows = 8
-            else:
-                num_bands = 69
-                num_windows = 1
-            sfc_chr = np.zeros((num_bands, num_windows), dtype=int)
-        else:
-            sfc_chr_decoded = np.array(decode_huff(frame["chr"]["sfc"], huffLUT[sfc_codebook_chr]))
-            # Reshape based on frame type
-            if frame_type == 'ESH':
-                sfc_chr = sfc_chr_decoded.reshape((42, 8))
-            else:
-                sfc_chr = sfc_chr_decoded.reshape((-1, 1))
+        sfc_chr = frame["chr"]["sfc"]
 
         frame_F_chl = i_aac_quantizer(S_chl, sfc_chl, frame["chl"]["G"], frame_type)
         frame_F_chr = i_aac_quantizer(S_chr, sfc_chr, frame["chr"]["G"], frame_type)

@@ -9,7 +9,7 @@ from utils_level_3.quantizer_utils import (
     _band_error_power
 )
 MAX_SFC_DIFF = 60
-def aac_quantizer(frame_F, frame_type, SMR):
+def aac_quantizer(frame_F, frame_type, SMR, compression_offset=0):
     """
     Quantizer stage implementation for one channel.
     Internally calculates the hearing threshold T(b) and implements quantization.
@@ -20,6 +20,7 @@ def aac_quantizer(frame_F, frame_type, SMR):
         frame_type (str): Frame type. Can be 'OLS', 'LSS', 'ESH', 'LPS'.
         SMR (array): Signal to Mask Ratio
                     Dimensions: 42×8 for EIGHT_SHORT_SEQUENCE, 69×1 otherwise
+        compression_offset (int): Quantization offset for compression control (default=0)
     
     Returns:
         S (array): Array of quantized MDCT coefficient symbols for current frame
@@ -87,6 +88,9 @@ def aac_quantizer(frame_F, frame_type, SMR):
 
                 alpha[b] = candidate
 
+        # Apply compression offset to alpha (higher alpha = smaller coefficients = more compression)
+        alpha = alpha + compression_offset
+        
         # Final quantization
         alpha_k = build_alpha_per_coeff(alpha, wlow, whigh, len(Xsf))
         Ssf = quantize(Xsf, alpha_k).astype(np.int32)
