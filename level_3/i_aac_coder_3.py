@@ -1,7 +1,7 @@
 import os
-import sys
 import numpy as np
 import soundfile as sf
+from datetime import datetime
 
 from utils_level_3.huff_utils import load_LUT, decode_huff
 from i_aac_quantizer import i_aac_quantizer
@@ -125,8 +125,12 @@ def i_aac_coder_3(aac_seq_3, filename_out):
         end = start + N
         x[start:end, :] += frame
 
-    # Save to WAV file
-    sf.write(filename_out, x, 48000)
-    print(f"Decoded audio saved to {filename_out}")
+    # Save to WAV file with timestamp
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    base, ext = os.path.splitext(filename_out)
+    filename_out_timestamped = f"{base}_{timestamp}{ext}"
+    
+    sf.write(filename_out_timestamped, x, 48000)
+    print(f"Decoded audio saved to {filename_out_timestamped}")
 
     return x
