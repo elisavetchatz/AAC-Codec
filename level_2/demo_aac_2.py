@@ -10,6 +10,11 @@ from utils_level_1.plotting_utils import (
     plot_encoding_process,
     plot_snr_analysis
 )
+
+plot = False
+plot_dir = 'level_2/outputs/plots/sin_window'
+
+
 def demo_aac_2(filename_in, filename_out):
     """
     Demonstration of level 2 AAC encoding with TNS support.
@@ -54,8 +59,6 @@ def demo_aac_2(filename_in, filename_out):
         SNR = float('inf')
 
     # plots
-    plot = False
-    plot_dir = 'level_2/outputs/plots/sin_window'
     if plot:
         os.makedirs(plot_dir, exist_ok=True)
         print(f"\nGenerating plots in '{plot_dir}/' directory...")
