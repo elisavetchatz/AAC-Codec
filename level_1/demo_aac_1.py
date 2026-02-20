@@ -7,6 +7,9 @@ from i_aac_coder_1 import i_aac_coder_1
 from utils_level_1.plotting_utils import (plot_audio_waveform, plot_audio_spectrogram,
                                                   plot_encoding_process, plot_snr_analysis)
 
+plot = False
+plot_dir = 'level_1/outputs/plots/sin_window'
+
 def demo_acc_1(filename_in, filename_out):
 
     """
@@ -50,11 +53,9 @@ def demo_acc_1(filename_in, filename_out):
         SNR = float('inf')  # Perfect reconstruction
     
     # Generate plots
-    plot = True
-    plot_dir = 'level_1/outputs/plots/sin_window'
     if plot:
         os.makedirs(plot_dir, exist_ok=True)
-        print(f"\nGenerating plots in '{plot_dir}/' directory...")
+        print(f"\nGenerating plots")
 
         # Waveform comparison (zoom error with default ±0.01)
         plot_audio_waveform(x_original, x_decoded, fs, save_path=f'{plot_dir}/waveform_comparison.png')

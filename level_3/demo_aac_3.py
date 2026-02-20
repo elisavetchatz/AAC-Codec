@@ -15,6 +15,9 @@ from utils_level_3.plotting_utils import (
     plot_compression_analysis
 )
 
+plot = False
+plot_dir = 'level_3/outputs/plots'
+
 
 def demo_aac_3(filename_in, filename_out, filename_aac_coded):
     """
@@ -97,10 +100,6 @@ def demo_aac_3(filename_in, filename_out, filename_aac_coded):
     print(f"Bitrate: {bitrate:.2f} bits/second ({bitrate/1000:.2f} kbps)")
     print(f"Original bitrate: {original_bitrate/1000:.2f} kbps")
     print(f"Compression ratio: {compression:.2f}x")
-    
-    # Generate plots
-    plot = True
-    plot_dir = 'level_3/outputs/plots'
     
     if plot:
         os.makedirs(plot_dir, exist_ok=True)

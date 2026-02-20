@@ -131,6 +131,6 @@ def i_aac_coder_3(aac_seq_3, filename_out):
     filename_out_timestamped = f"{base}_{timestamp}{ext}"
     
     sf.write(filename_out_timestamped, x, 48000)
-    print(f"Decoded audio saved to {filename_out_timestamped}")
+    print("Decoded audio saved")
 
     return x
