@@ -93,26 +93,10 @@ def demo_aac_3(filename_in, filename_out, filename_aac_coded):
     compression = original_bitrate / bitrate
     
     # Print results
-    print("\n" + "=" * 70)
-    print("RESULTS")
-    print("=" * 70)
     print(f"SNR: {SNR:.2f} dB")
     print(f"Bitrate: {bitrate:.2f} bits/second ({bitrate/1000:.2f} kbps)")
     print(f"Original bitrate: {original_bitrate/1000:.2f} kbps")
     print(f"Compression ratio: {compression:.2f}x")
-    print(f"Number of frames: {len(aac_seq_3)}")
-    print(f"Duration: {duration:.2f} seconds")
-    print("=" * 70)
-    print(f"Bitrate breakdown:")
-    print(f"  Stream bits: {total_stream_bits:,} ({total_stream_bits/total_bits*100:.1f}%)")
-    print(f"  SFC bits: {total_sfc_bits:,} ({total_sfc_bits/total_bits*100:.1f}%)")
-    print(f"  Overhead bits: {total_overhead_bits:,} ({total_overhead_bits/total_bits*100:.1f}%)")
-    print("=" * 70)
-    if total_coeffs > 0:
-        print(f"Coefficient sparsity:")
-        print(f"  Non-zero coefficients: {total_nonzero_coeffs:,} / {total_coeffs:,} ({total_nonzero_coeffs/total_coeffs*100:.1f}%)")
-        print(f"  Zero coefficients: {total_coeffs - total_nonzero_coeffs:,} ({(total_coeffs - total_nonzero_coeffs)/total_coeffs*100:.1f}%)")
-    print("=" * 70)
     
     # Generate plots
     plot = True
@@ -120,36 +104,19 @@ def demo_aac_3(filename_in, filename_out, filename_aac_coded):
     
     if plot:
         os.makedirs(plot_dir, exist_ok=True)
-        print(f"\nGenerating plots in '{plot_dir}/' directory...")
-        
-        # 1. Waveform comparison
-        print("  - Generating waveform comparison...")
+        print(f"\nGenerating plots")
         plot_audio_waveform(x_original, x_decoded, fs, save_path=f'{plot_dir}/waveform_comparison.png')
         
-        # 2. Spectrogram analysis
-        print("  - Generating spectrogram analysis...")
         plot_audio_spectrogram(x_original, x_decoded, fs, save_path=f'{plot_dir}/spectrogram.png')
         
-        # 3. SNR analysis
-        print("  - Generating SNR analysis...")
         plot_snr_analysis(x_original, x_decoded, fs, save_dir=plot_dir)
         
-        # 4. Psychoacoustic model analysis
-        print("  - Generating psychoacoustic analysis...")
-        plot_psychoacoustic_analysis(aac_seq_3, frame_indices=[0, 50, 100, 150, 200], 
-                                     save_path=f'{plot_dir}/psychoacoustic_analysis.png')
+        plot_psychoacoustic_analysis(aac_seq_3, frame_indices=[0, 50, 100, 150, 200], save_path=f'{plot_dir}/psychoacoustic_analysis.png')
         
-        # 5. Quantization analysis
-        print("  - Generating quantization analysis...")
         plot_quantization_analysis(aac_seq_3, save_path=f'{plot_dir}/quantization_analysis.png')
         
-        # 6. Encoding process
-        print("  - Generating encoding process visualization...")
-        plot_encoding_process(aac_seq_3, num_frames=3, representative_frames=[0, 50, 100],
-                            save_path=f'{plot_dir}/encoding_process.png')
+        plot_encoding_process(aac_seq_3, num_frames=3, representative_frames=[0, 50, 100], save_path=f'{plot_dir}/encoding_process.png')
         
-        # 7. Compression analysis
-        print("  - Generating compression analysis...")
         plot_compression_analysis(aac_seq_3, fs=fs, save_dir=plot_dir)
         
         print(f"\nAll plots saved in '{plot_dir}/' directory!")

@@ -1,18 +1,39 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from collections import Counter
 import os
+import numpy as np
 import scipy.io as sio
+import matplotlib.pyplot as plt
+
+from collections import Counter
+
+from huff_utils import load_LUT
 
 
-# Codebook tuple sizes (AAC standard)
-CODEBOOK_TUPLE_SIZE = {
-    1: 4, 2: 4,  # 4-tuples, signed
-    3: 4, 4: 4,  # 4-tuples, unsigned
-    5: 2, 6: 2,  # 2-tuples, signed
-    7: 2, 8: 2,  # 2-tuples, unsigned
-    9: 2, 10: 2, 11: 2  # 2-tuples, unsigned
-}
+def get_codebook_tuple_size(codebook_id, huffLUT=None):
+    """
+    Get tuple size for a given codebook from the actual Huffman LUT.
+    
+    Parameters
+    ----------
+    codebook_id : int
+        Huffman codebook ID (1-11)
+    huffLUT : list, optional
+        Loaded Huffman LUT. If None, will load it.
+    
+    Returns
+    -------
+    tuple_size : int
+        Number of coefficients per tuple (2 or 4)
+    """
+    if codebook_id == 0:
+        return 2  # Default for all-zero codebook
+    
+    if huffLUT is None:
+        huffLUT = load_LUT()
+    
+    if codebook_id < 1 or codebook_id > 11:
+        return 2  # Default fallback
+    
+    return huffLUT[codebook_id]['nTupleSize']
 
 
 def compute_entropy(elements):
@@ -52,7 +73,7 @@ def compute_entropy(elements):
     return entropy, probabilities
 
 
-def extract_tuples(symbols, codebook_id):
+def extract_tuples(symbols, codebook_id, huffLUT=None):
     """
     Group symbols into tuples based on AAC codebook specification.
     
@@ -62,6 +83,8 @@ def extract_tuples(symbols, codebook_id):
         Quantized MDCT coefficients
     codebook_id : int
         Huffman codebook used (1-11)
+    huffLUT : list, optional
+        Loaded Huffman LUT
     
     Returns
     -------
@@ -73,7 +96,7 @@ def extract_tuples(symbols, codebook_id):
     if codebook_id == 0:  # All zeros
         return []
     
-    tuple_size = CODEBOOK_TUPLE_SIZE.get(codebook_id, 2)
+    tuple_size = get_codebook_tuple_size(codebook_id, huffLUT)
     num_tuples = len(symbols) // tuple_size
     
     tuples = []
@@ -85,7 +108,7 @@ def extract_tuples(symbols, codebook_id):
     return tuples
 
 
-def analyze_frame_entropy(frame_data, frame_idx=0, verbose=False, channel='left'):
+def analyze_frame_entropy(frame_data, frame_idx=0, verbose=False, channel='left', huffLUT=None):
     """
     Analyze entropy efficiency for a single AAC frame.
     
@@ -99,12 +122,18 @@ def analyze_frame_entropy(frame_data, frame_idx=0, verbose=False, channel='left'
         Print detailed analysis
     channel : str
         'left', 'right', or 'both' - which channel to analyze
+    huffLUT : list, optional
+        Loaded Huffman LUT (loaded once and passed for efficiency)
     
     Returns
     -------
     results : dict
         Analysis results including H, L, efficiency, redundancy
     """
+    # Load huffLUT if not provided
+    if huffLUT is None:
+        huffLUT = load_LUT()
+    
     # Extract channel data - handle the nested structure
     if channel == 'left' or channel == 'both':
         ch_data = frame_data['chl'][0, 0] if isinstance(frame_data['chl'], np.ndarray) else frame_data['chl']
@@ -208,7 +237,7 @@ def analyze_frame_entropy(frame_data, frame_idx=0, verbose=False, channel='left'
         num_symbols = 1024
     
     # Calculate tuples based on codebook
-    tuple_size = CODEBOOK_TUPLE_SIZE.get(codebook, 2)
+    tuple_size = get_codebook_tuple_size(codebook, huffLUT)
     num_tuples = num_symbols // tuple_size
     
     # Compute average codeword length per tuple
@@ -221,7 +250,7 @@ def analyze_frame_entropy(frame_data, frame_idx=0, verbose=False, channel='left'
                         "Please re-encode with updated aac_coder_3.py that saves symbols S.")
     
     # Extract tuples from quantized symbols
-    tuples = extract_tuples(symbols, codebook)
+    tuples = extract_tuples(symbols, codebook, huffLUT)
     
     if len(tuples) == 0:
         raise ValueError(f"No tuples extracted from frame {frame_idx}")
@@ -238,26 +267,6 @@ def analyze_frame_entropy(frame_data, frame_idx=0, verbose=False, channel='left'
     # Compression ratio
     uncompressed_bits = num_symbols * 16  # 16-bit fixed point
     compression_ratio = uncompressed_bits / total_bits if total_bits > 0 else 0
-    
-    if verbose:
-        print(f"\n{'='*70}")
-        print(f"Frame {frame_idx} - EXACT Entropy Analysis ({channel} channel)")
-        print(f"{'='*70}")
-        print(f"Codebook: {codebook} ({tuple_size}-tuples)")
-        print(f"Number of tuples: {len(tuples)}")
-        print(f"Unique tuples: {len(prob_dist)}")
-        print(f"\nEntropy (H): {H_tuple:.3f} bits/tuple ({H_symbol:.3f} bits/symbol)")
-        print(f"Avg codeword length (L): {L_tuple:.3f} bits/tuple ({L_symbol:.3f} bits/symbol)")
-        print(f"Efficiency: {efficiency*100:.2f}% (H/L)")
-        print(f"Redundancy: {redundancy:.3f} bits/tuple")
-        print(f"\nShannon bound: H ≤ L < H+1")
-        print(f"  {H_tuple:.3f} ≤ {L_tuple:.3f} < {H_tuple+1:.3f} ✓" if shannon_satisfied else f"  ⚠ Outside Shannon bound!")
-        
-        # Show most common tuples
-        sorted_tuples = sorted(prob_dist.items(), key=lambda x: x[1], reverse=True)[:5]
-        print(f"\nTop 5 most common tuples:")
-        for tup, prob in sorted_tuples:
-            print(f"  {tup}: {prob*100:.2f}%")
     
     return {
         'frame_idx': frame_idx,
@@ -303,8 +312,11 @@ def analyze_all_frames(aac_seq, max_frames=None, verbose=False):
     num_frames = len(aac_seq) if max_frames is None else min(max_frames, len(aac_seq))
     results = []
     
+    # Load huffLUT once for efficiency
+    huffLUT = load_LUT()
+    
     for i in range(num_frames):
-        result = analyze_frame_entropy(aac_seq[i], frame_idx=i, verbose=False)
+        result = analyze_frame_entropy(aac_seq[i], frame_idx=i, verbose=False, huffLUT=huffLUT)
         results.append(result)
     
     # Compute aggregate statistics
@@ -336,22 +348,20 @@ def analyze_all_frames(aac_seq, max_frames=None, verbose=False):
 
 def print_summary(results, summary):
     """Print formatted summary of entropy analysis."""
-    print(f"\n{'='*70}")
-    print("AAC HUFFMAN ENTROPY ANALYSIS")
-    print(f"{'='*70}")
     
     print(f"\nFrames: {summary['num_frames']} | Method: EXACT")
-    print(f"\nEntropy (H):         {summary['mean_H_tuple']:.3f} bits/tuple")
+    print(f"\nEntropy (H): {summary['mean_H_tuple']:.3f} bits/tuple")
     print(f"Codeword Length (L): {summary['mean_L_tuple']:.3f} bits/tuple")
-    print(f"Efficiency (H/L):    {summary['mean_efficiency']*100:.1f}%")
-    print(f"Redundancy (L-H):    {summary['mean_redundancy']:.3f} bits/tuple")
+    print(f"Efficiency (H/L): {summary['mean_efficiency']*100:.1f}%")
+    print(f"Redundancy (L-H): {summary['mean_redundancy']:.3f} bits/tuple")
     
-    print(f"\nCompression: {summary['mean_compression_ratio']:.2f}x (effective: {16/summary['mean_compression_ratio']:.2f} bits/symbol)")
+    print(f"\nCompression (MDCT coefficients only): {summary['mean_compression_ratio']:.2f}x")
+    print(f" (effective: {16/summary['mean_compression_ratio']:.2f} bits/symbol)")
     
     print(f"\n{'='*70}")
 
 
-def visualize_entropy_analysis(results, summary, save_dir=r'C:\Users\30690\AAC-Codec\level_3\outputs\plots\encoding_analysis'):
+def visualize_entropy_analysis(results, summary, save_dir=r'level_3\outputs\plots\encoding_analysis'):
     """
     Create comprehensive visualization of entropy analysis as 4 separate plots.
     
@@ -428,7 +438,7 @@ def main():
     """Run entropy analysis on AAC encoded sequence."""
     
     # Load AAC encoded sequence
-    aac_file = 'C:\\Users\\30690\\AAC-Codec\\level_3\\outputs\\aac_seq_3.mat'
+    aac_file = 'level_3/outputs/aac_seq_3.mat'  # Use forward slashes (works on all platforms)
     
     try:
         mat_data = sio.loadmat(aac_file)
@@ -449,7 +459,7 @@ def main():
         # Visualize results
         visualize_entropy_analysis(results, summary)
         
-        print(f"\n✓ Analysis complete. Plots saved to: C:\\Users\\30690\\AAC-Codec\\level_3\\outputs\\plots\\encoding_analysis")
+        print(f"\nAnalysis complete")
         
     except FileNotFoundError:
         print(f"\nError: File not found. Run demo_aac_3.py first.")

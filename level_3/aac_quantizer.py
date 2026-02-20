@@ -8,7 +8,10 @@ from utils_level_3.quantizer_utils import (
     quantize,
     _band_error_power
 )
+
 MAX_SFC_DIFF = 60
+
+
 def aac_quantizer(frame_F, frame_type, SMR):
     """
     Quantizer stage implementation for one channel.
