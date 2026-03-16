@@ -5,10 +5,7 @@ import soundfile as sf
 from aac_coder_2 import aac_coder_2
 from i_aac_coder_2 import i_aac_coder_2
 from utils_level_1.plotting_utils import (
-    plot_audio_waveform,
-    plot_audio_spectrogram,
-    plot_encoding_process,
-    plot_snr_analysis
+    plot_audio_waveform
 )
 def demo_aac_2(filename_in, filename_out):
     """
@@ -48,10 +45,9 @@ def demo_aac_2(filename_in, filename_out):
     noise = x_original - x_decoded
     noise_power = np.sum(noise ** 2)
 
-    if noise_power > 0:
-        SNR = 10 * np.log10(signal_power / noise_power)
-    else:
-        SNR = float('inf')
+    eps = 1e-12
+    SNR = 10 * np.log10(signal_power / (noise_power + eps))
+
 
     # plots
     plot = False
@@ -63,21 +59,6 @@ def demo_aac_2(filename_in, filename_out):
         plot_audio_waveform(
             x_original, x_decoded, fs,
             save_path=f'{plot_dir}/waveform_comparison.png'
-        )
-
-        plot_audio_spectrogram(
-            x_original, x_decoded, fs,
-            save_path=f'{plot_dir}/spectrogram.png'
-        )
-
-        plot_encoding_process(
-            aac_seq_2, num_frames=10,
-            save_path=f'{plot_dir}/encoding_frames.png'
-        )
-
-        plot_snr_analysis(
-            x_original, x_decoded, fs,
-            save_path=f'{plot_dir}/snr_analysis.png'
         )
 
         print(f"All plots saved! SNR: {SNR:.2f} dB")

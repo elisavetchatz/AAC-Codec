@@ -9,9 +9,6 @@ from utils_level_3.plotting_utils import (
     plot_audio_waveform,
     plot_audio_spectrogram,
     plot_snr_analysis,
-    plot_psychoacoustic_analysis,
-    plot_quantization_analysis,
-    plot_encoding_process,
     plot_compression_analysis
 )
 
@@ -44,10 +41,9 @@ def demo_aac_3(filename_in, filename_out, filename_aac_coded):
     signal_power = np.sum(x_original ** 2)
     noise_power = np.sum((x_original - x_decoded) ** 2)
     
-    if noise_power > 0:
-        SNR = 10 * np.log10(signal_power / noise_power)
-    else:
-        SNR = float('inf')
+    eps = 1e-12
+    SNR = 10 * np.log10(signal_power / (noise_power + eps))
+
     
     # Calculate bitrate and analyze sparsity
     total_stream_bits = 0
@@ -115,7 +111,7 @@ def demo_aac_3(filename_in, filename_out, filename_aac_coded):
     print("=" * 70)
     
     # Generate plots
-    plot = True
+    plot = False
     plot_dir = 'level_3/outputs/plots'
     
     if plot:
@@ -132,25 +128,11 @@ def demo_aac_3(filename_in, filename_out, filename_aac_coded):
         
         # 3. SNR analysis
         print("  - Generating SNR analysis...")
-        plot_snr_analysis(x_original, x_decoded, fs, save_path=f'{plot_dir}/snr_analysis.png')
+        plot_snr_analysis(x_original, x_decoded, fs, save_dir=plot_dir)
         
-        # 4. Psychoacoustic model analysis
-        print("  - Generating psychoacoustic analysis...")
-        plot_psychoacoustic_analysis(aac_seq_3, frame_indices=[0, 50, 100, 150, 200], 
-                                     save_path=f'{plot_dir}/psychoacoustic_analysis.png')
-        
-        # 5. Quantization analysis
-        print("  - Generating quantization analysis...")
-        plot_quantization_analysis(aac_seq_3, save_path=f'{plot_dir}/quantization_analysis.png')
-        
-        # 6. Encoding process
-        print("  - Generating encoding process visualization...")
-        plot_encoding_process(aac_seq_3, num_frames=3, representative_frames=[0, 50, 100],
-                            save_path=f'{plot_dir}/encoding_process.png')
-        
-        # 7. Compression analysis
+        # 4. Compression analysis
         print("  - Generating compression analysis...")
-        plot_compression_analysis(aac_seq_3, fs=fs, save_path=f'{plot_dir}/compression_analysis.png')
+        plot_compression_analysis(aac_seq_3, fs=fs, save_dir=plot_dir)
         
         print(f"\nAll plots saved in '{plot_dir}/' directory!")
     
