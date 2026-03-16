@@ -8,8 +8,7 @@ The implementation processes stereo audio signals (48kHz) and progressively appl
 ## ⚙️ System Architecture
 The following diagram illustrates the complete pipeline of the encoder and decoder. The processing blocks are color-coded according to the three implementation levels of the project (Level 1, Level 2, and Level 3).
 
-![AAC Encoder and Decoder Pipeline](AAC-Diagram-Both.png)
----
+![AAC Encoder and Decoder Pipeline](report/AAC-Diagram.png)
 
 ## 📊 Key Results & Performance
 
@@ -21,8 +20,6 @@ The encoder successfully balances data compression with high acoustic fidelity b
   * *Lossy stage (Level 3):* 21.18 dB (Quantization noise is efficiently masked by the psychoacoustic model, making it imperceptible).
 * **Bit Allocation:** 92.2% of the final bitstream is efficiently utilized for the quantized MDCT coefficients, demonstrating the effectiveness of the Huffman coding stage.
 
----
-
 ## 🚀 Setup & Execution
 
 ### Prerequisites
@@ -33,7 +30,6 @@ pip install numpy scipy soundfile
 ### Running the Code
 To run the full Level 3 encoding and decoding pipeline:
 
-# Example command - adjust based on your actual main script
 ```bash
-python demo_aac_3.py --input data/audio.wav
+python demo_aac_3.py --input <audio.wav>
 ```
